@@ -14,6 +14,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Ruta POST para recibir datos del formulario y enviar correo
 app.post('/enviar-formulario', async (req, res) => {
+  console.log('❗ Llega POST /enviar-formulario');
+  console.log(req.body); // verás los datos del formulario
   const { nombre, correo, telefono } = req.body;
 
   const data = [{ Nombre: nombre, Correo: correo, Telefono: telefono }];
