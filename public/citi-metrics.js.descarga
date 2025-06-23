@@ -1,0 +1,464 @@
+// 20/08/2024
+
+String.prototype.toMetricFormat = function () {
+    return this.replace(/[¿?!¡().;$®%/,\{\}\[\]-_0-9]/g, '')
+        .fullCapitalize()
+        .normalize('NFD')
+        .replace(/[\s\u0300-\u036f]/g, '');
+};
+
+String.prototype.toMetricFaq = function () {
+    var words = this.split(' ');
+
+    words = words.reduce(function(previosValue,currentValue){
+        if(currentValue.length > 3){
+            previosValue.push(currentValue)
+        }
+        return previosValue;
+    },[]);
+
+    return words.join(' ').toMetricFormat();
+};
+
+function CitiMetrics() {
+
+    this.onBeforeLoadSVar = new CustomEvent('citi:before-load-s-var', {
+        cancelable: true,
+        bubbles: false
+    });
+
+    this.onSVarLoaded = new CustomEvent('citi:s-var-loaded', {
+        cancelable: false,
+        bubbles: false
+    });
+
+    this.onGenericMetricsLoaded = new CustomEvent('citi:generic-metrics-loaded', {
+        cancelable: false,
+        bubbles: false
+    });
+
+    this.onBeforeInitialQueryMetricSet = new CustomEvent('citi:before-initial-query-metric-set', {
+        cancelable: false,
+        bubbles: false
+    });
+
+    this.onInitialQueryMetricSetted = new CustomEvent('citi:initial-query-metric-setted', {
+        cancelable: false,
+        bubbles: false
+    });
+
+    // Nombre de los eventos que se deben disparar para las funciones de pixeles
+    //Ejemplo de uso en la funcion CitiMetrics.firstInteractionForm
+    this.PIXEL_EVENT_START_CAPTURE = 'citi:pixel:start-form-capture';
+    //Ejemplo de uso en la funcion CitiMetrics.successSavedForm
+    this.PIXEL_EVENT_SUCCESS_FORM = 'citi:pixel:success-form';
+    // Ejemplo de uso en el evento click del archivo generic-metrics en la region de pixeles
+    this.PIXEL_EVENT_CONVERSION_CLICK = 'citi:pixel:conversion-click';
+    /**
+     * No se ha utilizado, pero se debe implementar en los eventos de paso siguiente
+     * en caso de ser necesario.
+     *  document.dispatchEvent(CitiUtils.createMetricFormEvent(CitiMetrics.PIXEL_EVENT_NEXT_STEP,{
+            step: numeroDePaso
+        }));
+     */
+    this.PIXEL_EVENT_NEXT_STEP = 'citi:pixel:next-step';
+
+    this.pixelParams = {};
+
+    this.ignoreExitMetric = false;
+    this.exitIgnoreTimer = '';
+
+}
+
+CitiMetrics.prototype.constructor = CitiMetrics;
+
+CitiMetrics.prototype.getSVar = function () {
+    /**@type {CitiMetrics} */
+    var _this = this;
+
+    /*
+    if (CitiUtils.isMetricActive && document.dispatchEvent(_this.onBeforeLoadSVar)) {
+        CitiUtils.getScript('/recursos/js/mx_citi_s_code_v2.js', document.body).then(function (event) {
+            document.dispatchEvent(_this.onSVarLoaded);
+        });
+    }
+*/
+    
+       
+    if (CitiUtils.isMetricActive && document.dispatchEvent(_this.onBeforeLoadSVar)) {
+
+        CitiUtils.getScript("/recursos/js/mx_citi_launch.js", document.head).then(function (event) {
+            CitiUtils.getScript(getLaunchSrc(), document.head).then(function (event) {
+                setTimeout(() => {
+                      if(typeof _satellite !== 'undefined' && s){ 
+              				console.log("onSVarLoaded dispatched from Launch")
+                            document.dispatchEvent(_this.onSVarLoaded);
+            			}
+                    else {
+                       
+                       //document.dispatchEvent(_this.onSVarLoaded);
+                    }
+                }, 300);
+            });
+          }
+        );
+    }
+
+}
+
+CitiMetrics.prototype.sendLoadMetric = function () {
+
+    s.prop20 = localStorage.getItem('previousPageName') || '';
+    s.eVar23 = s.prop20;
+
+    if (typeof Biblioteca == "undefined") {
+      
+        (s.channel = ''),
+        (s.prop1 = ''),
+        (s.prop2 = ''),
+        (s.prop3 = ''),
+        (s.prop10 = 'ES'),
+        (s.prop24 = '');
+        s.t();
+    }
+
+    localStorage.removeItem('previousPageName');
+
+};
+
+CitiMetrics.prototype.resetVars = function () {
+    (s.channel = ''),
+        (s.prop1 = ''),
+        (s.prop2 = ''),
+        (s.prop3 = ''),
+        (s.prop10 = ''),
+        (s.prop24 = ''),
+        (s.eVar12 = ''),
+        (s.eVar15 = ''),
+        (s.eVar25 = ''),
+        (s.eVar43 = ''),
+        (s.events = ''),
+        (s.eVar46 = ''),
+        (s.eVar27 = ''),
+        (s.eVar92 = '');
+};
+
+CitiMetrics.prototype.startExitIgnoreTimer = function () {
+    this.exitIgnoreTimer = setTimeout(() => {this.ignoreExitMetric = false;}, 500);
+};
+
+CitiMetrics.prototype.getDeviceString = function () {
+    return CitiUtils.isMobile ? 'Mobile' : 'ES';
+};
+
+CitiMetrics.prototype.setQueryMetric = function () {
+    var _this = this;
+
+    if (s.pageName == undefined || s.pageName.length == 0) {
+        CitiMetrics.getSVar();
+    }
+
+    try {
+        var elementsToSet = document.querySelectorAll('[data-query-metric]');
+        var elementsSetted = [];
+        setTimeout(() => {
+            elementsToSet.forEach(function (elem) {
+                var data = elem.dataset;
+                if (!!data.queryMetric) {
+                    
+                    elementsSetted.push(elem);
+                    elem.classList.add('query-metric-setted');
+                    var queryParam = !!data.queryMetricType ? data.queryMetricType : 'lid';
+                    var queryMetric = '?' + queryParam + '=' + data.queryMetric
+                        .replace('s.pageName', s.pageName)
+                        .replace('ES/Mobile', _this.getDeviceString());
+
+                    var isHref = elem.hasAttribute('href');
+                    var target = isHref ? elem.href : data.path;
+
+                    if (target && target.indexOf('?') > 0) {
+                        queryMetric = queryMetric.replace('?', '&');
+                    }
+
+                    if (isHref) {
+                        elem.href = target + queryMetric;
+                    } else {
+                        elem.dataset.path = target + queryMetric;
+                    }
+                }
+                elem.removeAttribute('data-query-metric');
+                elem.removeAttribute('data-query-metric-type');
+            });
+        },500);
+        return elementsSetted;
+    } catch (error) {
+        console.error(error);
+    }
+
+    return [];
+};
+
+CitiMetrics.prototype.sendInteractionMetric = function (textInteraction) {
+
+    if (CitiUtils.isMetricActive) {
+        s.linkTrackVars = 'eVar25,events';
+        s.linkTrackEvents = 'event30';
+        s.eVar25 = s.pageName + textInteraction;
+        s.events = 'event30';
+        s.tl(this, 'o', s.pageName + '-Page Interaction');
+
+        
+        CitiMetrics.resetVars();
+    }
+};
+
+CitiMetrics.prototype.sendDownloadPdf = function (textPdf, url) {
+    if (CitiUtils.isMetricActive) {
+        s.linkTrackVars = 'eVar27,prop36,prop10,events';
+        s.linkTrackEvents = 'event27';
+        s.eVar27 = s.pageName + textPdf + '|DescargaArchivo';
+        s.events = 'event27';
+        s.prop36 = CitiUtils.isMobile ? 'Mobile' : 'Desktop';
+        s.prop10 = 'ES';
+        s.tl(this, 'd', url);
+        CitiMetrics.resetVars();
+    }
+}
+
+CitiMetrics.prototype.sendExitActionMetric = function (textExit) {
+    if (CitiUtils.isMetricActive && !this.ignoreExitMetric) {
+        s.linkTrackVars = ' ';
+        s.linkTrackEvents = ' ';
+        s.tl(this, 'e', s.pageName + '-' + textExit + '-' + this.getDeviceString());
+        CitiMetrics.resetVars();
+    }else if(this.ignoreExitMetric){
+        this.ignoreExitMetric = false;
+        clearTimeout(this.exitIgnoreTimer);
+    }
+};
+
+CitiMetrics.prototype.firstInteractionForm = function (timestamp, formType) {
+
+    formType = formType || 'Registration'; // Podria ser Registration o Self-Service
+
+    s.linkTrackVars = 'eVar15,events';
+    s.linkTrackEvents = 'event10';
+    s.eVar15 = s.pageName;
+    s.events = 'event10:' + timestamp;
+    s.tl(this, 'o', s.pageName + '-' + formType + ' Start');
+    CitiMetrics.resetVars();
+
+    document.dispatchEvent(CitiUtils.createMetricFormEvent(this.PIXEL_EVENT_START_CAPTURE));
+}
+
+CitiMetrics.prototype.fieldErrorsForm = function (errors, timestamp) {
+    s.linkTrackVars = 'eVar12,events';
+    s.linkTrackEvents = 'event9';
+    s.eVar12 = s.pageName + '|' + errors;
+    s.events = 'event9:' + timestamp;
+    s.tl(this, 'o', s.pageName + '-Custom Error');
+    CitiMetrics.resetVars();
+}
+
+CitiMetrics.prototype.leaveForm = function (emptyFields, lastField) {
+    if( !this.ignoreExitMetric){
+        s.linkTrackVars = 'prop14,prop25,events';
+        s.linkTrackEvents = 'event23';
+        s.prop14 = s.pageName + '|' + emptyFields;
+        s.prop25 = s.pageName + '|' + lastField;
+        s.events = 'event23';
+        s.tl(this, 'o', s.pageName + '-Exit Action');
+        CitiMetrics.resetVars();
+    }else{
+        this.ignoreExitMetric = false;
+        clearTimeout(this.exitIgnoreTimer);
+    }
+}
+
+CitiMetrics.prototype.stepsForm = function (timestamp, step, event) {
+    s.linkTrackEvents = event;
+    s.events = event+':' + timestamp;
+    s.tl(this, 'o', s.pageName + '-Registration Step ' + step);
+    CitiMetrics.resetVars();
+}
+
+CitiMetrics.prototype.successSavedForm = function (obj, text) {
+
+    for (var elem in obj) {
+        s[elem] = obj[elem]
+    }
+    s.tl(this, 'o', s.pageName + '-' + text);
+    CitiMetrics.resetVars();
+
+    document.dispatchEvent(CitiUtils.createMetricFormEvent(this.PIXEL_EVENT_SUCCESS_FORM));
+}
+
+CitiMetrics.prototype.duplicateFolioForm = function (obj, text) {
+
+    for (var elem in obj) {
+        s[elem] = obj[elem]
+    }
+    s.tl(this, 'o', s.pageName + '-' + text);
+    CitiMetrics.resetVars();
+}
+
+CitiMetrics.prototype.errorSaveForm = function (obj, text) {
+
+    for (var elem in obj) {
+        s[elem] = obj[elem]
+    }
+    s.tl(this, 'o', s.pageName + '-' + text);
+    CitiMetrics.resetVars();
+}
+
+CitiMetrics.prototype.inheritMetricsParams = function(onlyTargetBlank) {
+    var elementSelector = onlyTargetBlank 
+    ?
+        'a[href][target="_blank"]:not(header *, footer *, .query-metric-setted), [data-exitmodal]:not(header *, footer *, .query-metric-setted)' 
+    :
+        'a[href]:not(header *, footer *, .query-metric-setted), [data-exitmodal]:not(header *, footer *, .query-metric-setted)';
+    var urlParams = window.location.search.substr(1).split('&');
+    var metricParamToInherit = urlParams.find(function (paramString) {
+        return /^(lid=|icid=|ecid=)/.test(paramString);
+    });
+    
+    if (metricParamToInherit) {
+        var type = metricParamToInherit.split('=')[0];
+        var value = metricParamToInherit.split('=')[1];
+        document.querySelectorAll(elementSelector).forEach(function (elm) {
+            elm.dataset.queryMetric = value;
+            elm.dataset.queryMetricType = type;
+        });
+    }
+}
+
+CitiMetrics.prototype.inheritPreviousPageName = function() {
+
+    let links = 'a[href]:not(footer *, [data-exitmodal]):not([href$=".pdf"]):not([href*="tel"]):not([href*="mailto"])';
+
+    document.querySelectorAll(links).forEach(function(elem) {
+        elem.addEventListener('click', function() {
+            let event = new Event('previous-page-name');
+            document.dispatchEvent(event);
+        })
+    });
+}
+
+document.addEventListener('previous-page-name', event => {
+    localStorage.setItem('previousPageName', s.pageName);
+});
+
+CitiMetrics.prototype.setMetricsLinksSeo = function(content) {
+
+    let urls = [
+        { url: '/seguros', metric: 's.pageName-TextoBottom-Information-SEO-IrSegurosEnLinea-ES/Mobile' },
+        { url: '/seguros/seguros-en-linea/index.html', metric: 's.pageName-TextoBottom-Information-SEO-IrSegurosCitibanamex-ES/Mobile' },
+        { url: '/seguros/como-elegir-el-mejor-seguro.html', metric: 's.pageName-TextoBottom-Information-SEO-IrSegurosCitibanamex-ES/Mobile' },
+        { url: '/seguros/seguro-de-auto-protegido.html', metric: 's.pageName-TextoBottom-Information-SEO-IrSeguroDeAutoProtegidoCBNX-ES/Mobile' },
+        { url: '/seguros/seguro-de-vida.html', metric: 's.pageName-TextoBottom-Information-SEO-IrSeguroVidaCitibanamex-ES/Mobile' },
+        { url: '/seguros/seguro-de-hospitalizacion-protegida.html', metric: 's.pageName-TextoBottom-Information-SEO-IrSeguroDeHospitalizacionProtegidaCBNX-ES/Mobile' },
+        { url: '/seguros/seguro-de-casa-protegida.html', metric: 's.pageName-TextoBottom-Information-SEO-IrSeguroDeCasaCBNX-ES/Mobile' },
+        { url: '/seguros/seguro-de-pyme-protegida.html', metric: 's.pageName-TextoBottom-Information-SEO-IrSeguroDePYMEProtegidaCBNX-ES/Mobile' },
+        { url: '/seguros/seguro-de-viaje.html', metric: 's.pageName-TextoBottom-Information-SEO-IrSeguroViajeProtegidoCBNX-ES/Mobile' },
+        { url: '/seguros/seguro-de-accidentes.html', metric: 's.pageName-TextoBottom-Information-SEO-IrSeguroDeAccidentesCitibanamex-ES/Mobile' },
+        { url: '/seguros/seguro-antirrobo-bolso-protegido-cbnx.html', metric: 's.pageName-TextoBottom-Information-SEO-IrSeguroMueveteProtegidoCBNX-ES/Mobile' },
+        { url: '/seguros/seguro-de-compras-protegidas.html', metric: 's.pageName-TextoBottom-Information-SEO-IrSeguroComprasProtegidasCBNX-ES/Mobile' },
+        { url: '/seguros/seguro-de-ahorro.html', metric: 's.pageName-TextoBottom-Information-SEO-IrSeguroAhorroProtegidoCBNX-ES/Mobile' },
+        { url: '/seguros/plan-patrimonial.html', metric: 's.pageName-TextoBottom-Information-SEO-IrSeguroPatrimonialCBNX-ES/Mobile' },
+        { url: '/seguros/seguro-de-flotilla-protegida.html', metric: 's.pageName-TextoBottom-Information-SEO-IrSeguroDeFlotillaProtegidaCBNX-ES/Mobile' },
+        { url: '/seguros/seguro-de-retiro-de-efectivo.html', metric: 's.pageName-TextoBottom-Information-SEO-IrSeguroRetiroProtegidoCBNX-ES/Mobile' },
+        { url: '/landings/tarjetas-de-credito/index.html', metric: 's.pageName-TextoBottom-Information-SEO-IrLandingTarjetasDeCredito-ES/Mobile' },
+        { url: '/landings/tarjetas-de-debito/index.html', metric: 's.pageName-TextoBottom-Information-SEO-IrLandingTarjetasDeDebito-ES/Mobile' },
+        { url: '/eventos', metric: 's.pageName-TextoBottom-Information-SEO-IrEventosCitibanamex-ES/Mobile' },
+        { url: '/promociones', metric: 's.pageName-TextoBottom-Promotion-SEO-IrPromocionesCitibanamex-ES/Mobile' },
+        { url: '/es/personas/creditos/credito-de-nomina.html', metric: 's.pageName-TextoBottom-Information-SEO-IrCreditoNominaCitibanamex-ES/Mobile' },
+        { url: '/es/personas/creditos/credito-personal.html', metric: 's.pageName-TextoBottom-Information-SEO-IrCreditoPersonalCitibanamex-ES/Mobile' },
+        { url: '/es/personas/creditos/credito-hipotecario.html', metric: 's.pageName-TextoBottom-Information-SEO-IrCreditoHipotecarioCitibanamex-ES/Mobile' },
+        { url: '/fondos-de-inversion', metric: 's.pageName-TextoBottom-Information-SEO-IrFondosDeInversion-ES/Mobile' },
+        { url: '/portabilidad-de-nomina/index.html', metric: 's.pageName-TextoBottom-Information-SEO-IrPortabilidadDeNomina-ES/Mobile' },
+        { url: '/es/personas/banca-digital/bancanet.html', metric: 's.pageName-TextoBottom-Information-SEO-IrBancaNetCitibanamex-ES/Mobile' },
+        { url: '/premia', metric: 's.pageName-TextoBottom-Information-SEO-IrPuntosPremia-ES/Mobile' },
+        { url: '/es/personas/tarjetas-credito/tarjeta-clasica.html', metric: 's.pageName-TextoBottom-Information-SEO-IrClasicaCitibanamex-ES/Mobile' },
+        { url: '/es/personas/tarjetas-credito/tarjeta-oro.html', metric: 's.pageName-TextoBottom-Information-SEO-IrOroCitibanamex-ES/Mobile' },
+        { url: '/es/personas/tarjetas-credito/tarjeta-platinum.html', metric: 's.pageName-TextoBottom-Information-SEO-IrPlatinumCitibanamex-ES/Mobile' },
+        { url: '/es/personas/tarjetas-credito/programa-recompensas/thankyou-points.html', metric: 's.pageName-TextoBottom-Information-SEO-IrThankYouRewardsCitibanamex-ES/Mobile' },
+        { url: '/es/personas/tarjetas-credito/tarjeta-rewards.html', metric: 's.pageName-TextoBottom-Information-SEO-IrCitibanamexRewards-ES/Mobile' },
+        { url: '/es/personas/tarjetas-credito/tarjeta-premier.html', metric: 's.pageName-TextoBottom-Information-SEO-IrCitibanamexPremier-ES/Mobile' },
+        { url: '/es/personas/tarjetas-credito/tarjeta-prestige.html', metric: 's.pageName-TextoBottom-Information-SEO-IrCitibanamexPrestige-ES/Mobile' },
+        { url: '/es/personas/tarjetas-credito/tarjeta-beyond.html', metric: 's.pageName-TextoBottom-Information-SEO-IrCitibanamexBeyond-ES/Mobile' },
+        { url: '/es/personas/tarjetas-credito/tarjeta-homedepot.html', metric: 's.pageName-TextoBottom-Information-SEO-IrHomeDepotCitibanamex-ES/Mobile' },
+        { url: '/es/personas/tarjetas-credito/tarjeta-affinity.html', metric: 's.pageName-TextoBottom-Information-SEO-IrAffinityCardCitibanamex-ES/Mobile' },
+        { url: '/es/personas/tarjetas-credito/tarjeta-teleton.html', metric: 's.pageName-TextoBottom-Information-SEO-IrTeletonCitibanamex-ES/Mobile' },
+        { url: '/seguros/seguro-de-salud-protegida.html', metric: 's.pageName-TextoBottom-Information-SEO-IrSeguroDeSaludProtegidaCBNX-ES/Mobile' },
+        { url: '/seguros/seguro-de-respaldo-por-cancer.html', metric: 's.pageName-TextoBottom-Information-SEO-IrSeguroRespaldoCancerCBNX-ES/Mobile' },
+        { url: '/libra/index.html', metric: 's.pageName-TextoBottom-Information-SEO-IrLibraCitibanamex-ES/Mobile' },
+        { url: '/sitios/promociones', metric: 's.pageName-TextoBottom-Promotion-SEO-IrPromocionesCitibanamex-ES/Mobile' },
+        { url: '/afore/index.html', metric: 's.pageName-TextoBottom-Information-SEO-IrCitibanamexAfore-ES/Mobile' },
+        { url: '/afore/ahorro-citibanamex-afore.html', metric: 's.pageName-TextoBottom-Information-SEO-IrAhorroCitibanamexAfore-ES/Mobile' },
+        { url: '/afore/ahorro-voluntario.html', metric: 's.pageName-TextoBottom-Information-SEO-IrAhorroAforeCitibanamex-ES/Mobile' },
+        { url: '/afore/cambiarse-afore-citibanamex.html', metric: 's.pageName-TextoBottom-Information-SEO-IrCambiarseAforeCitibanamex-ES/Mobile' },
+        { url: '/es/personas/tarjetas-credito/tarjeta-de-credito-sin-anualidad-simplicity.html', metric: 's.pageName-TextoBottom-Information-SEO-IrSimplicityCitibanamex-ES/Mobile' },
+        { url: '/contratar-tarjeta-en-linea-citibanamex/index.html', metric: 's.pageName-TextoBottom-Information-SEO-IrDebitoMiCuentaCitibanamex-ES/Mobile' }
+
+    ];
+
+    content.querySelectorAll('a, bnmx-link').forEach(function(elem) {
+
+        for ( let u in urls ) {
+            if ( urls[u].url == elem.getAttribute('href').trim() ) {
+                elem.setAttribute('data-query-metric', urls[u].metric); 
+            }
+        }
+
+        if ( elem.getAttribute('data-seo-position') ) {
+            let lid = elem.getAttribute('data-query-metric').split('-ES/Mobile');
+            lid[0] = lid[0]+elem.getAttribute('data-seo-position');
+            elem.setAttribute('data-query-metric', lid[0]+'-ES/Mobile')
+        }
+
+    });
+
+    CitiMetrics.setQueryMetric();
+}
+
+var CitiMetrics = new CitiMetrics();
+
+let flagEvent = false
+document.addEventListener('citi:s-var-loaded', function (event) {
+  
+    if (flagEvent) 
+        return false
+
+    flagEvent = true
+
+    console.debug('S var loaded');
+
+    CitiMetrics.inheritPreviousPageName();
+    CitiMetrics.sendLoadMetric();
+
+    if (!s.pageName) {
+        var pageNameParts = s.getPageName().split('.');
+        pageNameParts.pop();
+        s.pageName = pageNameParts.join('.');
+    }
+
+    if (document.dispatchEvent(CitiMetrics.onBeforeInitialQueryMetricSet)) {
+        CitiMetrics.setQueryMetric();
+        document.dispatchEvent(CitiMetrics.onInitialQueryMetricSetted);
+    }
+
+    CitiUtils.getScripts([
+        '/assets/globals/js/metrics/generic-metrics.js',
+        '/assets/globals/js/metrics/header-footer.js',
+    ]).then(function () {
+        document.dispatchEvent(CitiMetrics.onGenericMetricsLoaded);
+
+    });
+});
+
+
+document.querySelectorAll('.no-inherit-params').forEach(function(elem) {
+
+    console.log(elem.getAttribute('href'))
+
+});

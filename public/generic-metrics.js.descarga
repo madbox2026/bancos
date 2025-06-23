@@ -1,0 +1,219 @@
+
+
+
+
+
+
+// 27/02/2025
+
+/**@function  isCarrouselArrows Verifica si el elmento es una flecha de carrusel y retorna su dirección, de lo contrario retorna ''
+ * @param {HTMLElement} element 
+ * @returns {string} 'prev', 'next' o ''
+*/
+
+// Carrseles cmp
+const cmpCarrousel = document.querySelectorAll('cmp-carrousel[data-carrousel-name-metric]')
+
+if (cmpCarrousel.length > 0) {
+    cmpCarrousel.forEach(elem => {
+
+        const arrows = elem.shadowRoot.querySelectorAll('.cmp-carrousel-arrows button')
+        arrows.forEach(button => {
+            button.addEventListener('click', function() {
+            const arrowDir = this.classList.contains('splide__arrow--next') ? 'Derecha' : 'Izquierda'
+            CitiMetrics.sendInteractionMetric('|'+elem.dataset.carrouselNameMetric+'|'+arrowDir)
+            })
+        })
+
+        const bullets = elem.shadowRoot.querySelectorAll('.splide__pagination button')
+        bullets.forEach(bullet => {
+            bullet.addEventListener('click', function() {
+                const number = this.getAttribute('aria-label').split('page')[1]
+                CitiMetrics.sendInteractionMetric('|'+elem.dataset.carrouselNameMetric+'|'+number)
+            })
+        })
+    })
+}
+
+function isCarrouselArrows(element) {
+
+    if (
+        element.matches('[data-carrousel-name-metric] .citi-carrousel-arrow') || 
+        element.matches('[data-carrousel-name-metric] .bnmx-carrousel-arrow') ||
+        element.matches('[data-carrousel-name-metric] .adp-carrousel-arrow')
+    ){
+        if(
+            element.classList.contains('prev')
+            // || element.classList.contains('algun otro selector de acuerdo a las implementaciones de maqueta')
+        ){
+            return 'prev';
+        }else if(
+            element.classList.contains('next')
+            // || element.classList.contains('algun otro selector de acuerdo a las implementaciones de maqueta')
+        ){
+            return 'next'
+        }
+    } else {
+        return '';
+    }
+
+}
+
+document.querySelectorAll('[data-metric-seo]').forEach(function(elm) {
+    CitiMetrics.setMetricsLinksSeo(elm);
+});
+
+document.querySelectorAll("[data-metric-faqs]").forEach(function(elem) {
+    const buttons = elem.querySelectorAll('bnmx-accordion').length > 0 ? elem.querySelectorAll('bnmx-accordion') : elem.querySelectorAll('cmp-dropdown')
+    buttons.forEach(button => {
+        button.addEventListener("click", () => {
+            let faqText = button.querySelector('[slot=header]') || button.querySelector('[slot=label]')
+            faqText = faqText.textContent.toMetricFaq()
+            CitiMetrics.sendInteractionMetric('|PreguntasFrecuentes|'+faqText);
+        })
+    })
+});
+
+document.addEventListener('click', function(event) {
+    /**@type {HTMLElement} */
+    let target = event.srcElement;
+
+
+    // Componentes customizados
+    const isWebComponentBnmxCard = (element) => {
+
+        const findComponent = (el) => {
+
+            if (   el && el.tagName.toLowerCase() == 'bnmx-card' && el.dataset.interactionMetric 
+                || el && el.tagName.toLowerCase() == 'bnmx-link' && el.dataset.interactionMetric
+            ) {
+                return el;
+            } else if (el) {
+                return findComponent(el.parentElement);
+            }
+
+            return false;
+        }
+
+        return findComponent(element);
+    };
+   
+    const isWebComponentBnmxLink = (element) => {
+
+        const findComponent = (el) => {
+
+            if (el && el.tagName.toLowerCase() == 'bnmx-link' && el.dataset.downloadpdf) {
+                return el;
+            } else if (el) {
+                return findComponent(el.parentElement);
+            }
+
+            return false;
+        }
+
+        return findComponent(element);
+    };
+
+    if(target.matches('a[href^="tel:"],a[href^="mailto:"]')) {
+        CitiMetrics.ignoreExitMetric = true;
+        CitiMetrics.startExitIgnoreTimer();
+    }
+
+    //#region Metrica de interacción
+    if(target.hasAttribute('data-interaction-metric') && !!target.dataset.interactionMetric || isWebComponentBnmxCard(target)) {
+        CitiMetrics.sendInteractionMetric(target.dataset.interactionMetric || isWebComponentBnmxCard(target).dataset.interactionMetric);
+    }
+    //#endregion
+      
+    //#region Metrica de descarga de pdfs
+  	if(target.hasAttribute('data-downloadpdf') && !!target.dataset.downloadpdf || isWebComponentBnmxLink(target)) {
+        CitiMetrics.sendDownloadPdf(target.dataset.downloadpdf || isWebComponentBnmxLink(target).dataset.downloadpdf, target.getAttribute('href') || isWebComponentBnmxLink(target.closest('bnmx-link')).getAttribute('href'));
+    }
+    //#endregion
+
+    //#region Carrousel
+        //Metrica de las flechas
+        var arrowDir = isCarrouselArrows(target);
+        if(arrowDir) {
+            let carrouselName = target.closest('[data-carrousel-name-metric]').dataset.carrouselNameMetric;
+            CitiMetrics.sendInteractionMetric('|'+carrouselName+'|'+(arrowDir==='prev'?'Izquierda':'Derecha'));
+        }
+
+        //Metric points
+        if(target.matches('[data-carrousel-name-metric] .citi-carrousel-pagination .citi-carrousel-pagination-page')) {
+            let bullet = target.getAttribute('aria-label').substr(-1);
+            let carrouselName = target.closest('[data-carrousel-name-metric]').dataset.carrouselNameMetric;
+            CitiMetrics.sendInteractionMetric('|'+carrouselName+'|'+bullet);
+        }
+  
+       //Metric points adp
+        if(target.matches('[data-carrousel-name-metric] .adp-carrousel-pagination .adp-carrousel-pagination-page')) {
+            let bullet = target.getAttribute('aria-label').substr(-1);
+            let carrouselName = target.closest('[data-carrousel-name-metric]').dataset.carrouselNameMetric;
+            CitiMetrics.sendInteractionMetric('|'+carrouselName+'|'+bullet);
+        }
+
+    //#endregion
+
+    //#region Preguntas frecuentes
+        if(target.matches('[data-collapse-group=faq]') && !target.hasAttribute('data-interaction-metric')){
+            let faqText = target.textContent.toMetricFaq();
+            CitiMetrics.sendInteractionMetric('|PreguntasFrecuentes|'+faqText);
+        }
+    //#endregion
+
+    //#region Tabs
+    if(target.hasAttribute('data-tab-metric') && !!target.dataset.tabMetric) {
+        let opt = target.dataset.expanded == 'false' ? 'Cerrar' : 'Abrir';
+        CitiMetrics.sendInteractionMetric(target.dataset.tabMetric+'|'+opt);
+    }
+
+    //#endregion
+
+    //#region Pixel Botones de conversión
+  	if(target.matches('.conversion-params')) {
+        let conversionIndex =  target.dataset.conversionIndex;
+        if(conversionIndex !== undefined){
+            conversionIndex = Number(conversionIndex);
+            if(convesionIndex.isNaN()){
+                target.removeAttribute('data-conversion-index');
+                conversionIndex = null;
+            }
+        }
+
+        let childIndex = conversionIndex || Array.prototype.indexOf.call(document.querySelectorAll('.conversion-params:not([data-conversion-index])'), target);
+        document.dispatchEvent(CitiUtils.createMetricFormEvent(CitiMetrics.PIXEL_EVENT_CONVERSION_CLICK,{
+            index: childIndex,
+            element: target
+        }));
+    }
+    //#endregion
+
+});
+
+document.addEventListener('citi-exit-modal-continue', function(event) {
+    let target = event.srcElement;
+    if(target.hasAttribute('data-exitmodal') && !!target.dataset.modalMetric){
+        CitiMetrics.sendExitActionMetric(target.dataset.modalMetric);
+    }
+});
+
+setTimeout(() => {
+    const exitModal = document.querySelector('cmp-dialog[id="exit"]');
+
+    if (exitModal != null) {
+        exitModal.addEventListener('cmp-exitmodal-continue', (event) => {
+            let metric = event.detail.metric;
+            metric != 'undefined' ? CitiMetrics.sendExitActionMetric('-'+metric) : null
+        });
+        
+        exitModal.shadowRoot.querySelector('.close-btn').addEventListener('click', function(event) {
+            const text = this.parentElement.querySelector('cmp-button').dataset.modalMetricClose 
+            if (text != 'undefined') { CitiMetrics.sendInteractionMetric('|'+text+'|Cerrar') }
+        });
+    }
+}, 1000);
+
+
+
+

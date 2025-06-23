@@ -1,0 +1,34 @@
+/*08/05/2025*/
+
+
+document.addEventListener('cards-promotions-loaded', () => {
+    CitiMetrics.setQueryMetricCmpElements();
+});
+
+document.addEventListener('cards-blog-loaded', () => {
+    CitiMetrics.setQueryMetricCmpElements();
+});
+
+const cmpCardDigitalElement = document.querySelector('[data-metric-buttons-apps] cmp-carrousel').shadowRoot.querySelectorAll('cmp-carrousel-slide cmp-carddigital');
+cmpCardDigitalElement.forEach((elem, index) => {
+    const buttonApp = elem.shadowRoot.querySelector('button');
+    const app = buttonApp.dataset.store.includes('google') ? 'GooglePlay' : 'AppStore'
+    let typeApp = index == 0 ? 'AppBanamex' : 'Dimo'
+
+    buttonApp.addEventListener('click', () => {
+        CitiMetrics.sendInteractionMetric('|NuestrasApps|'+typeApp+'|'+app);
+    });
+
+    const exitMetric = `NuestrasApps-${typeApp}-Information-Ir${app}`
+
+    buttonApp.setAttribute('data-modal-metric', exitMetric);
+    buttonApp.setAttribute('data-modal-metric-close', 'Modal|NuestrasApps|'+typeApp+'|'+app);
+});
+
+document.querySelector('cmp-help[data-metric-pdf]').addEventListener('click', function() {
+    CitiMetrics.sendDownloadPdf('|Ayuda|ContratoCaptacion');
+});
+
+document.querySelector("cmp-cookie-bar").shadowRoot.querySelector(".cmp-cookie-bar-close").addEventListener('click',function () {
+    CitiMetrics.sendInteractionMetric('|InformativoCookies|Cerrar');
+})

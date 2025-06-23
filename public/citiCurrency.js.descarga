@@ -1,0 +1,84 @@
+//update 12/06/23
+
+(function (global, factory) {
+    typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
+        typeof define === 'function' && define.amd ? define(['exports'], factory) :
+            (global = global || self, factory(global.citi = global.citi || {}));
+}(this, (function (exports) {
+    'use strict';
+
+    var Currency = (function () {
+        var component = document.getElementsByClassName('citi-currency')[0];
+        function setCambio(data) {
+            var compra$el = component.getElementsByClassName('compra')[0];
+            var venta$el = component.getElementsByClassName('venta')[0];
+            compra$el.innerText = data.compra;
+            venta$el.innerText = data.venta;
+        }
+        function hasSomeParentTheClass(element, classname) {
+            if (element.classList == undefined)
+                return false;
+            if (element.classList.contains(classname))
+                return true;
+            return (element.parentNode && hasSomeParentTheClass(element.parentNode, classname));
+        }
+        function toggle() {
+            var sw = component.classList.contains('active');
+            if (sw) {
+                component.classList.remove('active');
+            }
+            else {
+                component.classList.add('active');
+            }
+        }
+        function setEvents() {
+            if (!component)
+                return;
+            var flag = document.querySelector('[data-currency-flag]') || false;
+            if (window.matchMedia('(max-width: 767px)').matches) {
+                var carrousel = document.querySelector('.citi-carrousel');
+                var paginator = carrousel === null || carrousel === void 0 ? void 0 : carrousel.querySelector('.citi-carrousel-pagination');
+                var paginator_top = (paginator === null || paginator === void 0 ? void 0 : paginator.getBoundingClientRect().top) || 0;
+                var component_top = component.offsetHeight / 2;
+                component.style.top = paginator_top - component_top + 'px';
+            }
+            else {
+                component.style.top = (window.innerHeight / 2) + 'px';
+            }
+            var component_rect = component.getBoundingClientRect();
+            window.addEventListener('scroll', function () {
+                var rect = flag.getBoundingClientRect();
+                if (component_rect.bottom >= rect.bottom) {
+                    component.classList.add('not-visible');
+                    component.classList.remove('active');
+                }
+                else {
+                    component.classList.remove('not-visible');
+                }
+            });
+            window.addEventListener('click', function ($e) {
+                var target = $e.target;
+                if (!hasSomeParentTheClass(target, 'citi-currency') || (target === null || target === void 0 ? void 0 : target.classList.contains('backdrop'))) {
+                    component.classList.remove('active');
+                }
+            });
+            var label = component.getElementsByClassName('label')[0];
+            label.addEventListener('click', function (e) {
+                e.preventDefault();
+                toggle();
+            });
+        }
+        function init() {
+            setEvents();
+        }
+        return {
+            init: init,
+            setCambio: setCambio,
+        };
+    })();
+
+    exports.Currency = Currency;
+
+    Object.defineProperty(exports, '__esModule', { value: true });
+
+})));

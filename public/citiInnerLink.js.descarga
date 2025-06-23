@@ -1,0 +1,53 @@
+(function (global, factory) {
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
+  typeof define === 'function' && define.amd ? define(['exports'], factory) :
+  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.citi = global.citi || {}));
+}(this, (function (exports) { 'use strict';
+
+  var Innerlink = function () {
+    function handleClick(e, l) {
+      var a = l.getElementsByTagName('a')[0] || false;
+
+      if (e.target.tagName !== 'A' && a) {
+        a.click();
+      }
+    }
+
+    function init() {
+      destroy();
+      var links = document.querySelectorAll('[innerlink]');
+
+      var _loop = function _loop(i) {
+        var l = links[i];
+        l.addEventListener('click', function (e) {
+          handleClick(e, l);
+        });
+      };
+
+      for (var i = 0; i < links.length; i++) {
+        _loop(i);
+      }
+    }
+
+    function destroy() {
+      var links = document.querySelectorAll('[innerlink]');
+
+      for (var i = 0; i < links.length; i++) {
+        var l = links[i];
+        l.removeEventListener('click', function (e) {
+          handleClick(e);
+        });
+      }
+    }
+
+    return {
+      init: init,
+      destroy: destroy
+    };
+  }();
+
+  exports.Innerlink = Innerlink;
+
+  Object.defineProperty(exports, '__esModule', { value: true });
+
+})));

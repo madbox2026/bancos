@@ -1,0 +1,29 @@
+// 30/04/2025
+
+const searchbar = document.querySelector('cmp-navbar cmp-searchbar');
+let wordSearch = '';
+
+if (searchbar != null) {
+    searchbar.shadowRoot.querySelector('button').addEventListener('click', () => {
+        //CitiMetrics.sendInteractionMetric('|BuscadorMenu|'+wordSearch);
+    });
+    
+    let firstInteraction = false;
+    searchbar.shadowRoot.querySelector('input').addEventListener('input', (event) => {
+
+        wordSearch = event.target.value.replace(/ /g, '-');
+
+        if (!firstInteraction) {
+            CitiMetrics.sendInteractionMetric('|Menu|Buscador|InicioCaptura');
+        }
+        firstInteraction = true;
+    });
+}
+
+document.addEventListener('metric-word-search', function() {
+    CitiMetrics.internalSearch('MX|BuscadorMenu|'+wordSearch);
+});
+
+
+
+

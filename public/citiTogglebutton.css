@@ -1,0 +1,516 @@
+@charset "UTF-8";
+
+label.citi-togglebutton {
+    display: inline-flex;
+    line-height: 1;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none
+}
+
+label.citi-togglebutton input {
+    clip: rect(0, 0, 0, 0);
+    border-width: 0;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px
+}
+
+label.citi-togglebutton .citi-togglebutton-container {
+    align-items: center;
+    border-radius: 8px;
+    border-width: 2px;
+    cursor: pointer;
+    display: inline-flex;
+    flex-wrap: wrap;
+    font-size: .875rem;
+    font-weight: 400;
+    justify-content: center;
+    outline: none;
+    padding: .8125rem .5rem;
+    position: relative;
+    text-align: center;
+    transition-duration: .16s;
+    transition-property: background-color, border-color, box-shadow, color;
+    width: 100%
+}
+
+label.citi-togglebutton .citi-togglebutton-badge {
+    border-radius: 9999px;
+    font-weight: 300;
+    position: absolute;
+    right: -.75rem;
+    top: -.75rem;
+    z-index: 1
+}
+
+label.citi-togglebutton .citi-togglebutton-infix-container {
+    width: 100%
+}
+
+label.citi-togglebutton .citi-togglebutton-infix {
+    color: inherit;
+    display: block;
+    height: 1.5rem;
+    margin-bottom: .5rem;
+    margin-left: auto;
+    margin-right: auto;
+    width: 1.5rem
+}
+
+label.citi-togglebutton .citi-togglebutton-prefix {
+    color: inherit;
+    display: inline-block;
+    height: 1.125rem;
+    margin-right: 1rem;
+    width: 1.125rem
+}
+
+label.citi-togglebutton .citi-togglebutton-suffix {
+    color: inherit;
+    display: inline-block;
+    height: 1.125rem;
+    margin-left: 1rem;
+    width: 1.125rem
+}
+
+label.citi-togglebutton .citi-togglebutton-box {
+    align-items: center;
+    display: flex;
+    height: 0;
+    justify-content: center;
+    position: relative;
+    transition: all .35s ease;
+    width: 0
+}
+
+label.citi-togglebutton .citi-togglebutton-box:before {
+    color: currentColor;
+    content: "✓";
+    font-size: 1rem;
+    opacity: 0;
+    transform: scale(0) rotate(45deg);
+    transition-delay: .5s;
+    transition: all .35s ease
+}
+
+label.citi-togglebutton.with-pointer .citi-togglebutton-container {
+    position: relative
+}
+
+label.citi-togglebutton.with-pointer .citi-togglebutton-container:after {
+    background-color: #fff;
+    border-bottom-right-radius: .375rem;
+    content: "";
+    height: 1.25rem;
+    left: 50%;
+    opacity: 0;
+    position: absolute;
+    top: 98%;
+    transform: rotate(45deg) translateX(-50%);
+    transition: opacity .35s ease;
+    width: 1.25rem
+}
+
+button.citi-togglebutton {
+    align-items: center;
+    border-radius: 8px;
+    border-width: 2px;
+    cursor: pointer;
+    display: flex;
+    display: inline-flex;
+    flex-wrap: wrap;
+    font-size: .875rem;
+    font-weight: 400;
+    height: 100%;
+    justify-content: center;
+    outline: none;
+    padding: .8125rem .5rem;
+    position: relative;
+    text-align: center;
+    transition-duration: .16s;
+    transition-property: background-color, border-color, box-shadow, color;
+    width: 100%
+}
+
+button.citi-togglebutton .citi-togglebutton-container {
+    display: flex
+}
+
+button.citi-togglebutton:focus {
+    outline: none;
+    outline: thin solid #056dae
+}
+
+button.citi-togglebutton-badge {
+    border-radius: 9999px;
+    font-weight: 300;
+    position: absolute;
+    right: -.75rem;
+    top: -.75rem;
+    z-index: 1
+}
+
+button.citi-togglebutton-infix-container {
+    width: 100%
+}
+
+button.citi-togglebutton-infix {
+    color: inherit;
+    display: block;
+    height: 1.5rem;
+    margin-bottom: .5rem;
+    margin-left: auto;
+    margin-right: auto;
+    width: 1.5rem
+}
+
+button.citi-togglebutton-prefix {
+    margin-right: 1rem
+}
+
+button.citi-togglebutton-prefix,
+button.citi-togglebutton-suffix {
+    color: inherit;
+    display: inline-block;
+    height: 1.125rem;
+    width: 1.125rem
+}
+
+button.citi-togglebutton-suffix {
+    margin-left: 1rem
+}
+
+button.citi-togglebutton.with-pointer {
+    position: relative
+}
+
+button.citi-togglebutton.with-pointer:after {
+    background-color: #fff;
+    border-bottom-right-radius: .375rem;
+    content: "";
+    height: 1.25rem;
+    left: 50%;
+    opacity: 0;
+    position: absolute;
+    top: 98%;
+    transform: rotate(45deg) translateX(-50%);
+    transition: opacity .35s ease;
+    width: 1.25rem
+}
+
+button.citi-togglebutton.is-selected.with-pointer:after {
+    border-bottom: 2px solid #056dae;
+    border-right: 2px solid #056dae;
+    opacity: 1
+}
+
+.citi-togglebutton.with-ilustration {
+    position: relative
+}
+
+.citi-togglebutton.with-ilustration .citi-img {
+    bottom: calc(100% - 1.25rem);
+    height: 0 !important;
+    left: 50%;
+    opacity: 0;
+    position: absolute;
+    transform: translateX(-50%);
+    transition: opacity .35s ease, height .35s ease
+}
+
+.citi-togglebutton.with-ilustration.is-selected .citi-img,
+.citi-togglebutton.with-ilustration:hover .citi-img {
+    height: 3.125rem !important;
+    opacity: 1
+}
+
+label.citi-togglebutton.variant-primary .citi-togglebutton-container {
+    background-color: #fff;
+    border-color: #fff;
+    box-shadow: 0 3px 6px rgba(130, 167, 217, .32);
+    color: #056dae
+}
+
+label.citi-togglebutton.variant-primary .citi-togglebutton-container:hover {
+    background-color: #3abaed;
+    border-color: #3abaed;
+    box-shadow: 0 6px 12px rgba(130, 167, 217, .32);
+    color: #fff
+}
+
+label.citi-togglebutton.variant-primary input[type=checkbox]:checked+.citi-togglebutton-container,
+label.citi-togglebutton.variant-primary input[type=radio]:checked+.citi-togglebutton-container {
+    background-color: #056dae;
+    border-color: #056dae;
+    box-shadow: 0 12px 24px rgba(130, 167, 217, .32);
+    color: #fff
+}
+
+label.citi-togglebutton.variant-secondary .citi-togglebutton-container {
+    background-color: #fff;
+    border-color: #fff;
+    box-shadow: 0 3px 6px rgba(130, 167, 217, .32);
+    color: #056dae
+}
+
+label.citi-togglebutton.variant-secondary .citi-togglebutton-container:hover {
+    background-color: #056dae;
+    border-color: #056dae;
+    box-shadow: 0 6px 12px rgba(130, 167, 217, .32);
+    color: #fff
+}
+
+label.citi-togglebutton.variant-secondary .citi-togglebutton-container:hover * {
+    color: currentColor
+}
+
+label.citi-togglebutton.variant-secondary input[type=checkbox]:checked+.citi-togglebutton-container,
+label.citi-togglebutton.variant-secondary input[type=radio]:checked+.citi-togglebutton-container {
+    background-color: #056dae;
+    border-color: #056dae;
+    box-shadow: 0 12px 24px rgba(130, 167, 217, .32);
+    color: #fff
+}
+
+label.citi-togglebutton.variant-outline .citi-togglebutton-container {
+    background-color: #fff;
+    border-color: #fff;
+    box-shadow: 0 3px 6px rgba(130, 167, 217, .32);
+    color: #5c5f66
+}
+
+label.citi-togglebutton.variant-outline .citi-togglebutton-container:hover {
+    box-shadow: 0 6px 12px rgba(130, 167, 217, .32);
+    color: #056dae
+}
+
+label.citi-togglebutton.variant-outline input:focus+.citi-togglebutton-container {
+    border-color: #acb3bf;
+    box-shadow: 0 6px 12px rgba(130, 167, 217, .32);
+    color: #5c5f66
+}
+
+label.citi-togglebutton.variant-outline input:checked+.citi-togglebutton-container {
+    border-color: currentColor;
+    box-shadow: 0 6px 12px rgba(130, 167, 217, .32);
+    color: #056dae
+}
+
+label.citi-togglebutton.variant-outline input:active+.citi-togglebutton-container {
+    background-color: #e6f7ff;
+    border-color: #e6f7ff;
+    box-shadow: 0 12px 24px rgba(130, 167, 217, .32);
+    color: #292c33
+}
+
+label.citi-togglebutton.variant-outline input:disabled+.citi-togglebutton-container {
+    background-color: #fff;
+    border-color: #fff;
+    box-shadow: 0 3px 6px rgba(130, 167, 217, .32);
+    color: #acb3bf;
+    pointer-events: none
+}
+
+label.citi-togglebutton.variant-chip .citi-togglebutton-container {
+    background-color: #fff;
+    border-color: transparent;
+    border-radius: 3.125rem;
+    box-shadow: 0 3px 6px rgba(130, 167, 217, .32);
+    padding: .25rem .625rem
+}
+
+label.citi-togglebutton.variant-chip:hover .citi-togglebutton-container {
+    background-color: #e6f7ff
+}
+
+label.citi-togglebutton.variant-chip input[type=checkbox]:checked+.citi-togglebutton-container,
+label.citi-togglebutton.variant-chip input[type=radio]:checked+.citi-togglebutton-container {
+    border-color: #056dae;
+    box-shadow: 0 3px 6px rgba(130, 167, 217, .32);
+    color: #056dae
+}
+
+label.citi-togglebutton.variant-chip input[type=checkbox]:checked+.citi-togglebutton-container .citi-togglebutton-box,
+label.citi-togglebutton.variant-chip input[type=radio]:checked+.citi-togglebutton-container .citi-togglebutton-box {
+    height: 1.25rem;
+    padding: .125rem;
+    width: 1.25rem
+}
+
+label.citi-togglebutton.variant-chip input[type=checkbox]:checked+.citi-togglebutton-container .citi-togglebutton-box:before,
+label.citi-togglebutton.variant-chip input[type=radio]:checked+.citi-togglebutton-container .citi-togglebutton-box:before {
+    opacity: 1;
+    transform: scale(1) rotate(0)
+}
+
+label.citi-togglebutton.with-pointer input[type=checkbox]:checked+.citi-togglebutton-container:after,
+label.citi-togglebutton.with-pointer input[type=radio]:checked+.citi-togglebutton-container:after {
+    border-bottom: 2px solid #056dae;
+    border-right: 2px solid #056dae;
+    opacity: 1
+}
+
+button.citi-togglebutton.variant-primary {
+    background-color: #fff;
+    border-color: #fff;
+    box-shadow: 0 3px 6px rgba(130, 167, 217, .32);
+    color: #056dae
+}
+
+button.citi-togglebutton.variant-primary:hover {
+    background-color: #3abaed;
+    border-color: #3abaed;
+    box-shadow: 0 6px 12px rgba(130, 167, 217, .32);
+    color: #fff
+}
+
+button.citi-togglebutton.variant-primary.with-pointer:after {
+    background-color: #3abaed
+}
+
+button.citi-togglebutton.variant-primary.is-selected {
+    background-color: #056dae;
+    border-color: #056dae;
+    box-shadow: 0 12px 24px rgba(130, 167, 217, .32);
+    color: #fff
+}
+
+button.citi-togglebutton.variant-primary.is-selected:after {
+    border-bottom: 2px solid #056dae;
+    border-right: 2px solid #056dae;
+    opacity: 1
+}
+
+button.citi-togglebutton.variant-secondary {
+    background-color: #fff;
+    border-color: #fff;
+    box-shadow: 0 3px 6px rgba(130, 167, 217, .32);
+    color: #056dae
+}
+
+button.citi-togglebutton.variant-secondary:hover {
+    background-color: #056dae;
+    border-color: #056dae;
+    box-shadow: 0 6px 12px rgba(130, 167, 217, .32);
+    color: #fff
+}
+
+button.citi-togglebutton.variant-secondary:hover * {
+    color: currentColor
+}
+
+button.citi-togglebutton.variant-secondary.with-pointer:after {
+    background-color: #056dae
+}
+
+button.citi-togglebutton.variant-secondary.is-selected {
+    background-color: #056dae;
+    border-color: #056dae;
+    box-shadow: 0 12px 24px rgba(130, 167, 217, .32);
+    color: #fff
+}
+
+button.citi-togglebutton.variant-secondary.is-selected:after {
+    border-bottom: 2px solid #056dae;
+    border-right: 2px solid #056dae;
+    opacity: 1
+}
+
+button.citi-togglebutton.variant-secondary.is-selected * {
+    color: currentColor
+}
+
+button.citi-togglebutton.variant-outline {
+    background-color: #fff;
+    border-color: #fff;
+    box-shadow: 0 3px 6px rgba(130, 167, 217, .32);
+    color: #5c5f66
+}
+
+button.citi-togglebutton.variant-outline:hover {
+    box-shadow: 0 6px 12px rgba(130, 167, 217, .32);
+    color: #056dae
+}
+
+button.citi-togglebutton.variant-outline:focus {
+    border-color: #acb3bf;
+    box-shadow: 0 6px 12px rgba(130, 167, 217, .32);
+    color: #5c5f66;
+    outline: none
+}
+
+button.citi-togglebutton.variant-outline.is-selected {
+    border-color: currentColor;
+    box-shadow: 0 6px 12px rgba(130, 167, 217, .32);
+    color: #056dae
+}
+
+button.citi-togglebutton.variant-outline:active {
+    background-color: #e6f7ff;
+    border-color: #e6f7ff;
+    box-shadow: 0 12px 24px rgba(130, 167, 217, .32);
+    color: #292c33
+}
+
+button.citi-togglebutton.variant-outline:disabled {
+    background-color: #fff;
+    border-color: #fff;
+    box-shadow: 0 3px 6px rgba(130, 167, 217, .32);
+    color: #acb3bf;
+    pointer-events: none
+}
+
+button.citi-togglebutton.variant-ghost {
+    background-color: transparent;
+    border: .125rem solid transparent;
+    border-radius: .5rem;
+    box-shadow: none;
+    color: #5c5f66;
+    padding: 1.25rem
+}
+
+button.citi-togglebutton.variant-ghost:hover {
+    background-color: #fff;
+    box-shadow: 0 6px 12px rgba(130, 167, 217, .32);
+    color: #056dae
+}
+
+button.citi-togglebutton.variant-ghost:focus {
+    background-color: #fff;
+    box-shadow: 0 6px 12px rgba(130, 167, 217, .32);
+    color: #5c5f66;
+    outline: none
+}
+
+button.citi-togglebutton.variant-ghost.is-selected,
+button.citi-togglebutton.variant-ghost:active {
+    background-color: #fff;
+    border-color: #056dae;
+    box-shadow: 0 6px 12px rgba(130, 167, 217, .32);
+    color: #056dae
+}
+
+button.citi-togglebutton.variant-ghost:disabled {
+    color: #acb3bf;
+    pointer-events: none
+}
+
+button.citi-togglebutton.with-pointer.is-selected:after {
+    border-bottom: 2px solid #056dae;
+    border-right: 2px solid #056dae;
+    opacity: 1
+}
+
+@media (min-width:64em) {
+
+    button.citi-togglebutton,
+    label.citi-togglebutton .citi-togglebutton-container {
+        font-size: 1rem;
+        padding: .875rem 1rem
+    }
+}

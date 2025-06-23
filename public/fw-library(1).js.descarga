@@ -1,0 +1,31 @@
+// 30 mayo 2024
+
+
+if("undefined"!=typeof document){var antiClickjackScript=document.createElement("script"),antiClickjackStyle=document.createElement("style");antiClickjackStyle.id="antiClickjack",antiClickjackStyle.innerHTML="body{display:none !important;}",antiClickjackScript.type="text/javascript",antiClickjackScript.innerHTML='if (self === top) { var antiClickjack = document.getElementById("antiClickjack"); antiClickjack.parentNode.removeChild(antiClickjack);} else { top.location = self.location;}',document.getElementsByTagName("head")[0].appendChild(antiClickjackStyle),document.getElementsByTagName("head")[0].appendChild(antiClickjackScript)}function FWConfiguration(){this.UAT="https://uat.bau.portalbanamex.citibankonlineqa.com",this.PROD="https://www.banamex.com",this.SERVICE="/query",this.dataFormater=function(t){return t}}function FWConfigurable(t){this.config=new FWConfiguration,t&&(t.hasOwnProperty("UAT")||t.hasOwnProperty("PROD"))?(this.config.setProd(t.PROD||t.UAT),this.config.setUat(t.UAT||t.PROD)):t&&(this.config.setProd(t),this.config.setUat(t))}function CAT(t){t?FWConfigurable.call(this,t):FWConfigurable.call(this),this.site="7",this.entity="pt_cats",this.config.setDataFormater((function(t){return t.id=t.prod,t}))}function getInstanceCredito(t,o){return new Promise((function(i,e){try{function n(t,o){o?FWConfigurable.call(this,o):FWConfigurable.call(this),this.Extra="",this.nombreMicrositio=t}n.prototype=Object.create(FWConfigurable.prototype),n.prototype.constructor=n,$.getScript("/assets/js/fw-modules/Credito.js").done((function(){buildCredito(n),i(new n(t,o))}))}catch(r){e(r)}}))}function getInstanceCompromiso(t){return new Promise((function(o,i){try{function e(t){t?FWConfigurable.call(this,t):FWConfigurable.call(this),this.site="10",this.arrysCONDUSEF=[]}e.prototype=Object.create(FWConfigurable.prototype),e.prototype.constructor=e,$.getScript("/assets/js/fw-modules/Compromiso.js").done((function(){buildCompromiso(e),o(new e(t))}))}catch(n){i(n)}}))}function getInstanceMicrositios(t,o){return new Promise((function(i,e){try{function n(t,o){o?FWConfigurable.call(this,o):FWConfigurable.call(this),this.Extra="",this.nombreMicrositio=t}n.prototype=Object.create(FWConfigurable.prototype),n.prototype.constructor=n,$.getScript("/assets/js/fw-modules/Micrositios.js").done((function(){buildMicrositios(n),i(new n(t,o))}))}catch(r){e(r)}}))}function getInstancePromociones(t){return new Promise((function(o,i){try{function e(t){t?FWConfigurable.call(this,t):FWConfigurable.call(this),this.site="5"}e.prototype=Object.create(FWConfigurable.prototype),e.prototype.constructor=e,$.getScript("/assets/js/fw-modules/Promociones.js").done((function(){buildPromociones(e),o(new e(t))}))}catch(n){i(n)}}))}function getInstanceFolios(t,o){return new Promise((function(i,e){try{"undefined"==typeof Folios?$.getScript("/assets/js/fw-modules/Folios.js").done((function(){i(new Folios(t,o))})):i(new Folios(t,o))}catch(t){e(t)}}))}FWConfiguration.prototype.setProd=function(t){this.PROD=t},FWConfiguration.prototype.setUat=function(t){this.UAT=t},FWConfiguration.prototype.getURL=function(t){return console.debug(window.location.origin),CitiUtils.isProductionOr(this.UAT,this.PROD)+t},FWConfiguration.prototype.getURLService=function(){return this.getURL(this.SERVICE)},FWConfiguration.prototype.setDataFormater=function(t){this.dataFormater=t},FWConfigurable.prototype.getConfig=function(){return this.config},FWConfigurable.prototype.setConfig=function(t){this.config=t},FWConfigurable.prototype.getFetchBody=function(t,o){var i={"Content-Type":"application/json; charset=utf-8"};return this.config.getURL("")==location.origin&&void 0!==window.document.documentMode&&(i.Origin=location.origin),{method:"POST",dataType:"json",body:JSON.stringify(t),headers:i,signal:o?o.signal:o}},FWConfigurable.prototype.doFetch=function(t,o){return fetch(t,o)},FWConfigurable.prototype.getPromise=function(t){var o,i=this,e=new AbortController;return new Promise((function(n,r){fetch(i.config.getURLService(),i.getFetchBody(t,e)).then((function(t){if(clearTimeout(o),t.ok)return t.json();r("Error en petición.")})).then((function(t){t.Error?r(t.Error):(Array.isArray(t.data)?t.data=t.data.map((function(t){return i.config.dataFormater(t)})):t.data=i.config.dataFormater(t.data),n(t))})).catch((function(t){clearTimeout(o),r("Error es: "+t)})),o=setTimeout((function(){e.abort()}),CitiUtils.TIMEOUT)}))},CAT.prototype=Object.create(FWConfigurable.prototype),CAT.prototype.constructor=CAT,CAT.prototype.getCatsByObjectBody=function(t){return t.site=this.site,t.entity=this.entity,this.getPromise(t)},CAT.prototype.getById=function(t,o,i){var e={operation:"getEntityById",idExpression:"id="+t};return o&&(e.page=o.toString()),i&&(e.page_size=i.toString()),this.getCatsByObjectBody(e)},CAT.prototype.getAll=function(t,o){var i={operation:"getAll"};return t&&(i.page=t.toString()),o&&(i.page_size=o.toString()),this.getCatsByObjectBody(i)},CAT.prototype.getByOptions=function(t,o,i,e){var n={operation:"getEntitiesByOptions",options:t};return o&&(n.page=o.toString()),i&&(n.page_size=i.toString()),e&&(n.logicalOperator=e.toString()),this.getCatsByObjectBody(n)};
+
+
+function getInstanceAnalisisFinanciero(url) {
+
+    return new Promise(function (resolve, reject) {
+        try {
+            function AnalisisFinanciero(url) {
+                if (url) {
+                    FWConfigurable.call(this, url);
+                } else {
+                    FWConfigurable.call(this);
+                }
+                this.site = '4';
+            }
+
+            AnalisisFinanciero.prototype = Object.create(FWConfigurable.prototype);
+            AnalisisFinanciero.prototype.constructor = AnalisisFinanciero;
+
+           CitiUtils.getScript('/assets/js/fw-modules/AnalisisFinanciero.js?seis').then(function(res) {
+                buildAnalisisFinanciero(AnalisisFinanciero);
+                resolve(new AnalisisFinanciero());
+            })
+        } catch (error) {
+            reject(error);
+        }
+    });
+}

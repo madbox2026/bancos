@@ -1,0 +1,1239 @@
+// 26/08/2024
+
+String.prototype.fullCapitalize = function () {
+    const pattern = /^\w|(?:\s)\w/g;
+
+    let str = this.toLowerCase().replace(/[¿?!¡.;,\{\}\[\]-_0-9]/g, '');
+    let match = pattern.exec(str);
+
+    while (match) {
+        let char = match[0];
+        str =
+            str.substr(0, match.index) +
+            char.toUpperCase() +
+            str.substr(match.index + char.length);
+        match = pattern.exec(str);
+    }
+
+    return str;
+};
+
+function CitiUtils() {
+    this.haveFinanceToken = false;
+    this.alertDefault = null;
+    this.financeWorker = null;
+    this.dollarValues = null;
+    this.isMetricActive = true;
+    this.servicesTDC = null;
+    this.TIMEOUT = 1000 * 60 * 30;
+    this.optimizator;
+    var paramMetric;
+    window.location.search
+        .substring(1).split('&')
+        .forEach(function (param) {
+            if (/^no-metrics=.*/.test(param) && paramMetric == undefined) {
+                paramMetric = param;
+            }
+        });
+    this.isMetricActive = paramMetric === undefined ? true : paramMetric.split('=')[1] === 'true' ? false : true;
+
+    this.isMobile = this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+    )
+        ? true
+        : false;
+
+    this.citiAlerts = new Map();
+    // this.onCitiUtilsLoaded = new CustomEvent('citi:utils-loaded',{
+    //     cancelable: false,
+    //     bubbles: false
+    // });
+};
+
+CitiUtils.prototype.getScript = function (url, htmlParent, isSync) {
+
+    htmlParent = !!htmlParent ? htmlParent : document.body;
+    if(url == ''){
+        return Promise.resolve();
+    }
+    return new Promise(function (resolve, reject) {
+        var script = document.createElement('script');
+        htmlParent.appendChild(script);
+        script.onload = resolve;
+        script.onerror = reject;
+        if (!isSync) {
+            script.async = true;
+        }
+        script.src = url;
+    });
+};
+
+CitiUtils.prototype.mergeObject = function (target, source) {
+    source = source == undefined ? {} : source;
+    var _this = this;
+    var targetAux = JSON.parse(JSON.stringify(target));
+    Object.assign(targetAux, source);
+    Object.keys(target).forEach(function (key) {
+        if (typeof target[key] == 'object' && target[key] !== null) {
+            targetAux[key] = _this.mergeObject(target[key], source[key]);
+        }
+    });
+
+    return Object.assign(target, targetAux);
+};
+
+CitiUtils.prototype.setCookie = function (name, stringValue, expireDays) {
+    expireDays = !!expireDays ? expireDays : 90;
+    var expiresDate = new Date();
+    expiresDate.setTime(expiresDate.getTime() + (expireDays * 24 * 60 * 60 * 1000));
+    var expires = 'expires=' + expiresDate.toUTCString();
+    document.cookie = name + '=' + stringValue + ';' + expires + ';path=/';
+};
+
+CitiUtils.prototype.getCookie = function (name) {
+    var cname = name + '=';
+    var cookies = document.cookie.split(';');
+    for (var index = 0; index < cookies.length; index++) {
+        var cookie = cookies[index].trim();
+        if (cookie.indexOf(cname) === 0) {
+            return cookie.substring(cname.length, cookie.length)
+        }
+    }
+    return '';
+};
+
+CitiUtils.prototype.getCitiHelpers = function () {
+    if (typeof citi != 'undefined' && typeof citi.ScreenLock === 'undefined') {
+        return CitiUtils.getScript('/assets/globals/js/utilities/citiHelpers.js');
+    } else {
+        return Promise.resolve();
+    }
+};
+
+CitiUtils.prototype.getCitiTDCServices = function(){
+    var _this = this;
+    if (typeof CitiTDCServices == 'undefined') {
+        return this.getScript('/assets/globals/js/citi-libraries/citi-utils/citi-tdc-services.js').then(function () {
+            _this.servicesTDC = new CitiTDCServices();
+            return  _this.servicesTDC;
+        });
+    } else {
+        return Promise.resolve( _this.servicesTDC);
+    }
+}
+
+CitiUtils.prototype.waitForElement = function (querySelector, timeout) {
+    timeout = isNaN(parseInt(timeout)) ? 15000 : parseInt(timeout);
+    var startTime = new Date().getTime();
+    return new Promise(function (resolve, reject) {
+        var timer = setInterval(function () {
+            var now = new Date().getTime();
+            if (document.querySelector(querySelector)) {
+                clearInterval(timer);
+                resolve(document.querySelector(querySelector));
+            } else if (timeout && now - startTime >= timeout) {
+                clearInterval(timer);
+                reject();
+            }
+        }, 100);
+    });
+};
+
+CitiUtils.prototype.waitForElementCB = function (querySelector, timeout, success, error) {
+    timeout = isNaN(parseInt(timeout)) ? 15000 : parseInt(timeout);
+    var startTime = new Date().getTime();
+    var timer = setInterval(function () {
+        var now = new Date().getTime();
+        if (document.querySelector(querySelector)) {
+            clearInterval(timer);
+            success(document.querySelector(querySelector));
+        } else if (timeout && now - startTime >= timeout) {
+            clearInterval(timer);
+            error();
+        }
+    }, 100);
+};
+
+CitiUtils.prototype.getScripts = function (urlArray) {
+    var _this = this;
+    var promiseArry = [];
+    urlArray.forEach(function (url) {
+        promiseArry.push(_this.getScript(url, null, true));
+    });
+    return Promise.all(promiseArry);
+}
+
+CitiUtils.prototype.getJSON = function (url) {
+    return fetch(url).then(function (response) {
+        return response.json();
+    });
+};
+
+CitiUtils.prototype.getCSSElement = function (url) {
+    var link = document.createElement('link');
+    link.href = url;
+    link.rel = 'stylesheet';
+    link.type = 'text/css';
+    return link;
+};
+
+CitiUtils.prototype.getCSS = function (url) {
+    var _this = this;
+    return new Promise(function (resolve, reject) {
+        var link = _this.getCSSElement(url);
+        link.onload = resolve;
+        link.onerror = reject;
+        document.querySelector('head').appendChild(link);
+    });
+};
+
+CitiUtils.prototype.getNonCriticalCSSs = function (urlArray) {
+    var _this = this;
+    var promiseArry = [];
+    var lastInserted = document.querySelector('script[src*="citi-global-site"]');
+    urlArray.forEach(function (url) {
+        promiseArry.push(new Promise(function (resolve, reject) {
+            var link = _this.getCSSElement(url);
+            link.onload = resolve(link);
+            link.onerror = reject;
+            link.media = 'only x';
+            lastInserted.parentNode.insertBefore(link, lastInserted.nextSibling);
+            lastInserted = link;
+        }));
+    });
+    return Promise.all(promiseArry).then(function (responses) {
+        window.addEventListener('load', function () {
+            responses.forEach(function (link) {
+                link.media = 'all';
+            });
+        });
+    });
+};
+
+CitiUtils.prototype.getRegexFromUrlWildCard = function (urlWildCard) {
+    return urlWildCard
+        .replace(/\/\*\*/g, '@@@')
+        .replace(/\/\*/g, '@@')
+        .replace(/\*/g, '\.*')
+        .replace(/@@@/g, '/\.*')
+        .replace(/@@/g, '/[^/]*')
+        .replace(/\//g, '\\/') + '$';
+};
+
+CitiUtils.prototype.getHTMLComponent = function (url) {
+    return fetch(url)
+        .then(function (res) {
+            return res.text();
+        })
+        .then(function (htmlText) {
+            var element = document.createElement('div');
+            element.innerHTML = htmlText;
+
+            return element.firstElementChild;
+        });
+};
+
+CitiUtils.prototype.getScriptCB = function (url, htmlParent, successCallback, errorCallback) {
+    htmlParent = !!htmlParent ? htmlParent : document.body;
+    var script = document.createElement('script');
+    htmlParent.appendChild(script);
+    script.onload = successCallback;
+    script.onerror = errorCallback;
+    script.async = true;
+    script.src = url;
+};
+
+CitiUtils.prototype.getTokenFinance = function () {
+    var _this = this;
+    return new Promise(function (resolve, reject) {
+        if (!!_this.haveFinanceToken) {
+            resolve(true);
+        } else {
+            var timeout = setTimeout(function () {
+                reject('timeout');
+            }, 5000);
+
+            if (!_this.financeWorker) {
+                _this.financeWorker = new Worker('/assets/js/w-finanzas.js');
+            }
+            _this.financeWorker.postMessage('{"get":["tok"]}');
+
+            _this.financeWorker.addEventListener('message', function (event) {
+                if (event.data.id === 'tok') {
+                    _this.financeWorker.removeEventListener('message', this);
+                    clearTimeout(timeout);
+                    _this.haveFinanceToken = true;
+                    resolve(true);
+                }
+            });
+        }
+    });
+};
+
+CitiUtils.prototype.getDollar = function () {
+    var _this = this;
+    return new Promise(function (resolve, reject) {
+        if (!!_this.dollarValues) {
+            resolve(_this.dollarValues);
+        } else {
+            var timeout = setTimeout(function () {
+                reject('timeout');
+            }, 5000);
+
+            if (!_this.financeWorker) {
+                _this.financeWorker = new Worker('/assets/js/w-finanzas.js');
+            }
+            _this.financeWorker.postMessage('{"get":["dolar"]}');
+
+            _this.financeWorker.addEventListener('message', function (event) {
+                if (event.data.id === 'dolar') {
+                    _this.financeWorker.removeEventListener('message', this);
+                    clearTimeout(timeout);
+                    _this.dollarValues = event.data.data;
+                    resolve(event.data.data);
+                }
+            });
+        }
+    });
+};
+
+CitiUtils.prototype.showDollar = function(){
+    var _this = this;
+    return _this.waitForElement('body > div.citi-currency', 1000).then(function (elm) {
+        _this.getTokenFinance().then(function () {
+            _this.getDollar().then(function (data) {
+                Object.keys(data).forEach(function (key) {
+                    elm.querySelectorAll('[data-currency-value="' + key + '"]').forEach(function (currency) {
+                        currency.innerText = data[key].replace('$', '');
+                    });
+                });
+                elm.removeAttribute('style');
+                citi.Currency.init();
+            });
+        });
+    }).catch(function (error) {
+        console.debug('No currency element');
+    });
+};
+
+CitiUtils.prototype.getCATs = function(){
+    function sinAcentos(cadena) {
+        var chars = {
+            'á': 'a',
+            'é': 'e',
+            'í': 'i',
+            'ó': 'o',
+            'ú': 'u',
+            'à': 'a',
+            'è': 'e',
+            'ì': 'i',
+            'ò': 'o',
+            'ù': 'u',
+            'ñ': 'n',
+            'Á': 'A',
+            'É': 'E',
+            'Í': 'I',
+            'Ó': 'O',
+            'Ú': 'U',
+            'À': 'A',
+            'È': 'E',
+            'Ì': 'I',
+            'Ò': 'O',
+            'Ù': 'U',
+            'Ñ': 'N'
+        };
+        var expr = /[áàéèíìóòúùñ]/ig;
+        var res = cadena.replace(expr, function (e) {
+            return chars[e];
+        });
+        return res;
+    }
+
+    function infoTarjetas(datos) {
+        var cats = new CAT();
+        let options = {
+            "operation": "getEntitiesByOptions",
+            "options": datos,
+            "logicalOperator": "OR",
+        }
+        cats.getCatsByObjectBody(options).then(function (data) {
+            setLegales(data.data);
+        })
+    }
+
+    function todasTarjetas() {
+        var cats = new CAT();
+        cats.getAll('0', '50').then(function (data) {
+            localStorage.setItem('cats', JSON.stringify(data.data));
+            setLegales(data.data);
+        });
+    }
+
+    function setLegales(resultado) {
+
+        resultado.forEach(function (val) {
+
+            val.id = val.id.replace(/ /g, '');
+
+            val.id = sinAcentos(val.id);
+
+            document.querySelectorAll('.comi-' + val.id).forEach(function (elm) {
+                elm.innerHTML = val.comi;
+            });
+            document.querySelectorAll('.cat-' + val.id).forEach(function (elm) {
+                elm.innerHTML = val.cat;
+            });
+            document.querySelectorAll('.tasa-' + val.id).forEach(function (elm) {
+                elm.innerHTML = val.tasa;
+            });
+            document.querySelectorAll('.ingreso-' + val.id).forEach(function (elm) {
+                elm.innerHTML = val.ingreso;
+            });
+            document.querySelectorAll('.fecha-' + val.id).forEach(function (elm) {
+                elm.innerHTML = val.fecha;
+            });
+            document.querySelectorAll('.fechaVIni-' + val.id).forEach(function (elm) {
+                elm.innerHTML = val.fechaVigenciaInicio;
+            });
+            document.querySelectorAll('.fechaVFin-' + val.id).forEach(function (elm) {
+                elm.innerHTML = val.fechaVigenciaFin;
+            });
+
+        });
+    }
+
+    var attrTar = ''
+    attrTar = document.querySelector('body').getAttribute('tarjeta');
+
+    if (typeof (CAT) == "function") {
+        if (attrTar == 'todas') {
+            todasTarjetas()
+        } else if (attrTar != '' && attrTar != undefined) {
+            var tar = attrTar.split(",")
+            var tarjetas = ""
+
+            for (var i = 0; i < tar.length; i++) {
+                tarjetas = tarjetas + ',' + 'prod=' + tar[i]
+
+            }
+
+            infoTarjetas(tarjetas)
+
+        } else if (document.querySelectorAll("span[nomProd], span[idProd]").length > 0 && (attrTar == '' || attrTar == undefined)) {
+            var tarjetas = "";
+
+            if (document.querySelectorAll("span[nomProd]").length > 0 && document.querySelectorAll("span[idProd]").length > 0) {
+                console.debug('Error en el atributo (solo puede ocupar "nomProd" o "idProd")')
+            } else {
+
+                document.querySelectorAll('span[nomProd]').forEach(function (v) {
+                    tarjetas = tarjetas + ',' + 'prod=' + v.getAttribute('nomProd')
+                });
+                if (tarjetas == "") {
+                    document.querySelectorAll('span[idProd]').forEach(function (v) {
+                        tarjetas = tarjetas + ',' + 'id=' + v.getAttribute('idProd')
+                    });
+                }
+
+                infoTarjetas(tarjetas)
+            }
+
+        } else if (document.querySelectorAll("span[class^='comi-'], span[class^='cat-'], span[class^='tasa-'], span[class^='ingreso-'], span[class^='fecha-'], span[class^='fechaVIni-'], span[class^='fechaVFin-']").length > 0 && (attrTar == '' || attrTar == undefined)) {
+            console.debug("entra")
+            todasTarjetas()
+
+        }
+    }
+};
+
+CitiUtils.prototype.getCitiAlert = function () {
+    var _this = this;
+    return new Promise(function (resolve, reject) {
+        if (typeof CitiAlert === 'undefined') {
+            Promise.all([
+                CitiUtils.getScript('/assets/globals/js/citi-libraries/citi-utils/citi-alert-msg.js'),
+                CitiUtils.getCitiSanitizer()
+            ])
+                .then(function () {
+                    resolve();
+                });
+        } else {
+            resolve();
+        }
+    });
+};
+
+CitiUtils.prototype.getCitiSanitizer = function () {
+    if (typeof CitiSanitizer == 'undefined') {
+        return this.getScript('/assets/globals/js/citi-libraries/citi-utils/citi-sanitizer.js').then(function () {
+            return new CitiSanitizer();
+        });
+    } else {
+        return Promise.resolve(new CitiSanitizer());
+    }
+};
+
+CitiUtils.prototype.getAlertDefault = function () {
+    var _this = this;
+    if (this.alertDefault) {
+        return Promise.resolve(this.alertDefault);
+    } else {
+        return this.getJSON('/assets/json/mensaje-error.json').then(function (configDefault) {
+            _this.alertDefault = configDefault;
+            return _this.alertDefault;
+        });
+    }
+};
+
+CitiUtils.prototype.createCitiStepComponent = function (rootElement) {
+    if (typeof CitiStepComponent == 'undefined') {
+        return this.getScript('/assets/globals/js/citi-libraries/citi-utils/citi-step.js').then(function () {
+            return new CitiStepComponent(rootElement);
+        });
+    } else {
+        return Promise.resolve(new CitiStepComponent(rootElement));
+    }
+};
+
+CitiUtils.prototype.createCitiZipCodeHelperComponent = function(rootElement){
+    if (typeof CitiZipCodeHelperComponent == 'undefined') {
+        return this.getScript('/assets/globals/js/citi-libraries/citi-utils/citi-zip-code-helper.js').then(function () {
+            return new CitiZipCodeHelperComponent(rootElement);
+        });
+    } else {
+        return Promise.resolve(new CitiZipCodeHelperComponent(rootElement));
+    }
+}
+
+CitiUtils.prototype.createCitiTimerComponent = function (rootElement) {
+    if (typeof CitiTimerComponent == 'undefined') {
+        return this.getScript('/assets/globals/js/citi-libraries/citi-utils/citi-timer.js').then(function () {
+            return new CitiTimerComponent(rootElement);
+        });
+    }
+};
+
+CitiUtils.prototype.showAlertByConfig = function (config) {
+    var _this = this;
+    this.getAlertDefault().then(function (configDefault) {
+        var finalConfig = _this.mergeObject(configDefault, config);
+        _this.getCitiAlert().then(function () {
+            Object.keys(finalConfig).forEach(function (key) {
+                var alert;
+                if (_this.citiAlerts.has(key)) {
+                    alert = _this.citiAlerts.get(key);
+                } else {
+                    switch (key) {
+                        case 'msg':
+                            alert = new CitiAlertMSG();
+                            break;
+                        case 'hero':
+                            alert = new CitiAlertCarrouselHero();
+                            break;
+                    }
+                }
+                if (alert) {
+                    _this.mergeObject(alert, finalConfig[key]);
+                    alert.update();
+                    _this.citiAlerts.set(key, alert);
+                }
+            });
+        });
+    });
+}
+
+CitiUtils.prototype.createMetricFormEvent = function (eventName, detail) {
+    var newEvent = new CustomEvent(eventName, {
+        bubbles: false,
+        cancelable: false,
+        detail: detail,
+    });
+
+    return newEvent;
+}
+
+CitiUtils.prototype.isProductionOr = function (paramUAT, paramPROD) {
+    paramUAT = !paramUAT ? false : paramUAT;
+    paramPROD = !paramPROD ? true : paramPROD;
+    var url = paramPROD;
+    if (!/^https:\/\/(www\.)?banamex\.com$/.test(window.location.origin) && !/^https:\/\/(www\.)?banamex.inklusion.incluirt\.net$/.test(window.location.origin)) {
+        //No es Producción
+        if (typeof paramUAT === 'string') {
+            isToSurvey = paramUAT.indexOf('/c719_005_encuestas_mdo/public/rest') != -1;
+            switch (window.location.origin) {
+                case 'https://portal.banamex.dev.mexico.citigroup.net': //SIT
+                    paramUAT = paramUAT.replace('https://uat.bau.portalbanamex.citibankonlineqa.com', 'https://portal.banamex.dev.mexico.citigroup.net');
+                    break;
+                case 'https://perf.portal.citibanamex.com': // PERF
+                    if (!isToSurvey) {
+                        paramUAT = paramUAT.replace('https://uat.bau.portalbanamex.citibankonlineqa.com', 'https://perf.portal.citibanamex.com');
+                    }
+                    break;
+            };
+        }
+        url = paramUAT;
+    } 
+    console.debug("url: ", url)
+    return url;
+};
+
+CitiUtils.prototype.getCitiCurrency = function () {
+    if (typeof CitiCurrency === 'undefined') {
+        return CitiUtils.getScript('/assets/globals/js/citi-libraries/citi-utils/citi-currency.js');
+    } else {
+        return Promise.resolve();
+    }
+
+};
+
+CitiUtils.prototype.hideCurrencyElements = function (currencyStatus) {
+    this.getCitiCurrency().then(
+        function () {
+            CitiCurrency.hideCurrencyElements(currencyStatus);
+        }
+    );
+};
+
+CitiUtils.prototype.changeCurrencyValues = function(objValues) {
+
+    if (typeof CitiChangeCurrency === 'undefined') {
+        return CitiUtils.getScript('/assets/globals/js/citi-libraries/citi-utils/citi-change-currency.js').then(function() {
+            return CitiChangeCurrency.changeValues(objValues)
+        })
+    } else {
+        return Promise.resolve();
+    }
+}
+
+var flagPickupCard = false;
+CitiUtils.prototype.showPickupCard = function(product, view, salary) {
+
+    if ( flagPickupCard ) 
+        return false;
+
+        flagPickupCard = true;
+    
+    let path = window.location.pathname;
+    let urlAllows = [
+        "/",
+        "/index.html",
+        "/index.htm",
+        "/es/index.html",
+        "/es/index.htm"
+    ];
+
+    if ( urlAllows.includes(path) ) {
+        if(typeof CitiPickupCard == 'undefined') {
+            return CitiUtils.getScript('/assets/globals/js/citi-libraries/citi-utils/citi-pickup-card.js').then(function() {
+                return new CitiPickupCard(product, view, salary);
+            });
+        }
+        else {
+            return Promise.resolve(new CitiPickupCard(product, view, salary));
+        }
+    }
+}
+
+var flagPushCrosell = false;
+CitiUtils.prototype.showPushCrosell = function(banner) {
+
+    if ( flagPushCrosell ) 
+    return false;
+
+    flagPushCrosell = true;
+
+    if(typeof CitiPushCrosell == 'undefined') {
+        return CitiUtils.getScript('/assets/globals/js/citi-libraries/citi-utils/citi-push-crosell.js').then(function() {
+            return new CitiPushCrosell(banner);
+        });
+    }
+    else {
+        return Promise.resolve(new CitiPushCrosell(banner));
+    }
+    
+}
+
+let flagNotificationTDC = false;
+CitiUtils.prototype.showNotificationTDC = function(content) {
+
+    if(flagNotificationTDC) 
+        return false;
+
+    flagNotificationTDC = true;
+
+    if(typeof NotificationTDC == 'undefined') {
+        return CitiUtils.getScript('/assets/globals/js/citi-libraries/citi-utils/citi-notification-tdc.js').then(function() {
+            return new NotificationTDC(content);
+        });
+    }
+    else {
+        return Promise.resolve(new NotificationTDC(content));
+    }
+}
+
+let flagModal = false;
+CitiUtils.prototype.showModal = function(content) { 
+
+    if(flagModal) 
+        return false;
+
+    flagModal = true;
+
+    if(typeof ModalSeguros == 'undefined') {
+        return CitiUtils.getScript('/assets/globals/js/citi-libraries/citi-utils/citi-modal-seguros.js').then(function() {
+            return new ModalSeguros(content);
+        });
+    }
+    else {
+        return Promise.resolve(new ModalSeguros(content));
+    }
+}
+
+let flagBannerRAO = false;
+CitiUtils.prototype.showBannerRAO = function(content) { 
+
+    if(flagBannerRAO) 
+        return false;
+
+        flagBannerRAO = true;
+
+    if(typeof ModalSeguros == 'undefined') {
+        return CitiUtils.getScript('/assets/globals/js/citi-libraries/citi-utils/citi-banner-rao.js').then(function() {
+            return new CitiRaoBanner(content);
+        });
+    }
+    else {
+        return Promise.resolve(new CitiRaoBanner(content));
+    }
+}
+
+CitiUtils.prototype.showInactivityModal = function(timer,functionExe,obj){
+    if(typeof InactivityModal == 'undefined') {
+        return CitiUtils.getScript('/assets/globals/js/citi-libraries/citi-utils/citi-inactivity-modal.js').then(function() {
+            return new InactivityModal(timer,functionExe,obj);
+        });
+    }
+    else {
+        return Promise.resolve(new InactivityModal(timer,functionExe,obj));
+    }
+}
+
+CitiUtils.prototype.constructor = CitiUtils;
+var CitiUtils = new CitiUtils();
+//document.dispatchEvent(CitiUtils.onCitiUtilsLoaded);
+
+
+
+function CitiGlobalSite() {
+    this.legacyType = null;
+    this.headerType = 'full';
+    this.footerType = 'full';
+
+    this.onBeforeInitialHeaderFooterLoad = new CustomEvent('citi:before-initial-header-footer-load', {
+        cancelable: true,
+        bubbles: false
+    });
+
+    this.onInitialHeaderFooterLoaded = new CustomEvent('citi:initial-header-footer-loaded', {
+        cancelable: false,
+        bubbles: false
+    });
+
+};
+
+CitiGlobalSite.prototype.isUrlNewMetricTemplate = function () {
+    if(location.pathname.indexOf('/sitios/educacion-financiera/') !== -1 || location.pathname.indexOf('/compromiso-social/') !== -1 || location.pathname.indexOf('/localizador-sucursales/') !== -1){
+        return true 
+    }else{
+        return false
+    }
+}
+
+CitiGlobalSite.prototype.isUrlNewMetric = function (enableNM, urlsNM = []) {
+    try {
+        const pathname = location.pathname.split('.').pop().includes('htm') ? location.pathname : `${location.pathname}index.html`;
+        return enableNM.global && !!urlsNM.filter((package) => {
+            return package.enabled && !!package.paths.filter(path => path.trim() === pathname || path.trim() === location.pathname).length;
+        }).length;
+    } catch (e) {
+        return false;
+    }
+}
+
+CitiGlobalSite.prototype.getMetricsPaths = () => {
+    return new Promise((resolve) => {
+        CitiUtils.getScript('/assets/globals/js/metrics/citi-nm-paths.js', document.head, true).then(
+            () => {
+                const interval = setInterval(() => {
+                    if (!!enableNewMetrics && !!pathsNewMetrics) {
+                        console.log('Se carga nm-paths')
+                        clearInterval(interval);
+                        resolve({enableNewMetrics,pathsNewMetrics})
+                    }
+                }, 100);
+            }
+        );
+    })
+}
+
+CitiGlobalSite.prototype.getMetricsResources = async () => {
+
+    if (CitiUtils.isMetricActive) {
+
+        let resourcesName = '';
+        let metricFiles = null;
+
+        const paths = await CitiGlobalSite.getMetricsPaths();
+        const isUrlNM = CitiGlobalSite.isUrlNewMetric(paths.enableNewMetrics, paths.pathsNewMetrics);
+        const isUrlTemplate = CitiGlobalSite.isUrlNewMetricTemplate();
+
+        if (isUrlNM || isUrlTemplate) {
+            resourcesName = 'datalayer_main'
+            metricFiles = [
+                //CitiUtils.getScript('/assets/globals/js/analytics/mx_citi_datalayer_main.js', document.querySelector('head'), true),
+                typeof pVDataLayer == 'undefined' ? CitiUtils.getScript('/assets/globals/js/analytics/mx_citi_datalayer_main.js', document.querySelector('head'), true) : '',
+                CitiUtils.getScript('/assets/globals/js/metrics/citi-new-metrics.js', document.querySelector('head'), true)
+            ]
+        } else {
+            resourcesName = 'getSVar'
+            metricFiles = [
+                CitiUtils.getScript('/assets/globals/js/citi-libraries/citi-metrics.js', document.querySelector('head')),
+                CitiUtils.getScript('/recursos/js/axfTag.js', document.querySelector('head'), true)
+            ]
+        }
+
+        // let metricFiles = [
+        //     CitiUtils.getScript('/assets/globals/js/citi-libraries/citi-metrics.js', document.querySelector('head')),
+        //     CitiUtils.getScript('/recursos/js/axfTag.js', document.querySelector('head'), true)
+        // ]
+
+        // console.log("se carga citi-metrics")
+
+        return Promise.all(metricFiles).then(function (res) {
+            if (document.readyState === 'complete') {
+                // CitiMetrics.getSVar();
+                // console.log("se carga getSVar 1")
+                CitiMetrics.getSVar()
+                console.log(`Se carga ${resourcesName}1`)
+            } else {
+                window.addEventListener('load', function () {
+                    // CitiMetrics.getSVar();
+                    // console.log("se carga getSVar 2")
+                CitiMetrics.getSVar()
+                    console.log(`Se carga ${resourcesName}2`)
+                });
+            }
+        });
+    } else {
+        return Promise.resolve;
+    }
+};
+
+CitiGlobalSite.prototype.getHeaderFooterResources = function (headerType, footerType) {
+
+    var _this = this;
+    if (!!headerType) {
+        this.headerType = headerType;
+    } else {
+        this.headerType = !document.querySelector('html').dataset.headerType ? this.headerType : document.querySelector('html').dataset.headerType;
+    }
+    if (!!footerType) {
+        this.footerType = footerType;
+    } else {
+        this.footerType = !document.querySelector('html').dataset.footerType ? this.footerType : document.querySelector('html').dataset.footerType;
+    }
+    document.querySelector('html').dataset.headerType = this.headerType;
+    document.querySelector('html').dataset.footerType = this.footerType;
+
+
+    return Promise.all([
+        this.loadHeader(),
+        this.loadFooter(),
+        CitiUtils.getScript('/assets/globals/js/citi-libraries/citi-header.js', document.head),
+        CitiUtils.getScript('/assets/globals/js/citi-libraries/citi-utils/citi-optimization.js', document.head)
+    ]).then(function (responses) {
+
+        CitiUtils.optimizator = new CitiOptimization();
+        CitiUtils.optimizator.lazyLoadImages();
+
+        if (typeof citi != 'undefined' && typeof citi.Navbar != 'undefined') {
+            citi.Navbar.init('onlyFunctionality');
+            citi.Navbar.loaded();
+        } else {
+            document.addEventListener('DOMContentLoaded', function () {
+                citi.Navbar.init('onlyFunctionality');
+                citi.Navbar.loaded();
+            });
+        }
+
+        document.dispatchEvent(_this.onInitialHeaderFooterLoaded);
+
+    });
+};
+
+CitiGlobalSite.prototype.getGlobalResources = function () {
+
+    var _this = this;
+    this.initSearch();
+    CitiUtils.showDollar();
+    return Promise.all([
+        this.initialLoadHeaderFooter(),
+        this.getMetricsResources()
+    ]);
+};
+
+CitiGlobalSite.prototype.getUrlHeaderTemplate = function () {
+
+    switch (this.headerType) {
+        case 'cs':
+            return '/assets/globals/templates/cs-header.htm';
+        case 'minimal':
+            return '/assets/globals/templates/minimal-header.htm';
+        case 'full':
+        default:
+            return '/assets/globals/templates/header.htm';
+    }
+};
+
+CitiGlobalSite.prototype.getUrlFooterTemplate = function () {
+    switch (this.headerType) {
+        case 'cs':
+            return '/assets/globals/templates/cs-footer.htm';
+        case 'minimal':
+            return '/assets/globals/templates/minimal-footer.htm';
+        case 'full':
+        default:
+            return '/assets/globals/templates/footer.htm';
+    }
+};
+
+CitiGlobalSite.prototype.loadHeaderNativeSite = function (isOnlyPromise) {
+
+    if (isOnlyPromise) {
+        return CitiUtils.getHTMLComponent(this.getUrlHeaderTemplate());
+    } else {
+        return Promise.all([
+            CitiUtils.getHTMLComponent(this.getUrlHeaderTemplate()),
+            CitiUtils.waitForElement('body > header')
+        ]).then(function (responses) {
+            for (var index = 0; index < responses[1].classList.length; index++) {
+                var classString = responses[1].classList.item(index);
+                if (classString.indexOf('dft') == -1 && classString.indexOf('cbx') == -1) {
+                    responses[0].classList.add(classString);
+                }
+            }
+            responses[1].parentNode.replaceChild(responses[0], responses[1]);
+        });
+    }
+};
+
+CitiGlobalSite.prototype.loadHeaderLegacySite = function (isManualMigrated) {
+
+    var _this = this;
+    var header = document.querySelector('body > header');
+    if (this.legacyType === 'dft' || this.legacyType === 'cbx' || this.legacyType === 'ng') {
+        document.querySelector('html').classList.add('text-inherit');
+        if (!!document.querySelector('body')) {
+            document.querySelector('body').classList.add('citi-theme-light');
+        }
+    }
+
+    if (isManualMigrated) {
+        return this.loadHeaderNativeSite().then(function () {
+            if (_this.legacyType === 'dft') {
+                CitiUtils.getCSS('/assets/globals/css/legacy/citi-fix-dft.css');
+            }
+            if (_this.legacyType === 'cbx') {
+                CitiUtils.getCSS('/assets/globals/css/legacy/citi-fix-cbx.css');
+                CitiUtils.getCSS('/assets/globals/css/legacy/citi-fix-dft.css');
+            }
+            if (_this.legacyType === 'ng') {
+                CitiUtils.getCSS('/assets/globals/css/legacy/citi-fix-ng.css');
+                CitiUtils.getCSS('/assets/globals/css/legacy/citi-fix-cbx.css');
+            }
+        });
+    } else {
+
+        var _this = this;
+        return Promise.all([
+            CitiUtils.getCSS('/assets/globals/css/citi-globals.css'),
+            CitiUtils.getCSS('/assets/globals/css/components/citiNavbar_js.css'),
+            CitiUtils.getCSS('/assets/globals/css/components/citiFooter.css'),
+            CitiUtils.getCSS('/assets/globals/css/components/citiCollapse_js.css'),
+            _this.loadHeaderNativeSite(true),
+            CitiUtils.getScript('/assets/globals/js/citi-libraries/citi-header.js'),
+            CitiUtils.getScripts([
+                '/assets/globals/js/utilities/polyfills.js',
+                '/assets/globals/js/utilities/vendors.js',
+                '/assets/globals/js/components/citiNav.js',
+                '/assets/globals/js/components/citiCollapse.js'
+            ])
+        ]).then(function (responses) {
+            if (_this.legacyType === 'dft') {
+                CitiUtils.getCSS('/assets/globals/css/legacy/citi-fix-dft.css');
+            }
+            if (_this.legacyType === 'cbx') {
+                CitiUtils.getCSS('/assets/globals/css/legacy/citi-fix-cbx.css');
+                CitiUtils.getCSS('/assets/globals/css/legacy/citi-fix-dft.css');
+            }
+            if (_this.legacyType === 'ng') {
+                CitiUtils.getCSS('/assets/globals/css/legacy/citi-fix-ng.css');
+                CitiUtils.getCSS('/assets/globals/css/legacy/citi-fix-cbx.css');
+            }
+            for (var index = 0; index < header.classList.length; index++) {
+                var classString = header.classList.item(index);
+                if (classString.indexOf('dft') == -1 && classString.indexOf('cbx') == -1) {
+                    responses[4].classList.add(classString);
+                }
+            }
+            header.parentNode.replaceChild(responses[4], header);
+            if (_this.legacyType === 'citi' && typeof citi.MenuSticky != 'undefined') {
+                citi.MenuSticky.init()
+            }
+        });
+    }
+
+};
+
+CitiGlobalSite.prototype.loadFooterNativeSite = function (isOnlyPromise) {
+    if (isOnlyPromise) {
+        return CitiUtils.getHTMLComponent(this.getUrlFooterTemplate());
+    } else {
+        return Promise.all([
+            CitiUtils.getHTMLComponent(this.getUrlFooterTemplate()),
+            CitiUtils.waitForElement('body > footer')
+        ]).then(function (responses) {
+            for (var index = 0; index < responses[1].classList.length; index++) {
+                var classString = responses[1].classList.item(index);
+                if (classString.indexOf('dft') == -1 && classString.indexOf('cbx') == -1) {
+                    responses[0].classList.add(classString);
+                }
+            }
+            responses[1].parentNode.replaceChild(responses[0], responses[1]);
+        }).catch(function (errors) {
+            console.debug('Error footer', errors)
+        });
+    }
+}
+
+CitiGlobalSite.prototype.loadFooterLegacySite = function (isManualMigrated) {
+    var footerPromise;
+    var _this = this;
+    if (isManualMigrated) {
+        footerPromise = this.loadFooterNativeSite();
+    } else {
+        var footer = document.querySelector('body > footer');
+        footerPromise = this.loadFooterNativeSite(true).then(function (element) {
+            for (var index = 0; index < footer.classList.length; index++) {
+                var classString = footer.classList.item(index);
+                if (classString.indexOf('dft') == -1 && classString.indexOf('cbx') == -1) {
+                    element.classList.add(classString);
+                }
+            }
+            footer.parentNode.replaceChild(element, footer);
+            if (_this.legacyType === 'citi' && typeof citi != 'undefined' && typeof citi.Backtotop != 'undefined') {
+                citi.Backtotop.init();
+                citi.Backtotop.toggle(false, false);
+            }
+        });
+    }
+
+    return footerPromise.then(function () {
+        if (_this.legacyType === 'cbx' || _this.legacyType === 'dft' || _this.legacyType === 'ng') {
+            if (!!document.querySelector('body > footer')) {
+                document.querySelector('body > footer').classList.add('cbx-footer');
+                document.querySelector('body > footer').setAttribute('id', 'main-footer');
+            } else {
+                CitiUtils.waitForElement('body > footer').then(function (elm) {
+                    elm.classList.add('cbx-footer');
+                    elm.setAttribute('id', 'main-footer');
+                });
+            }
+        }
+    });
+
+
+};
+
+CitiGlobalSite.prototype.loadHeader = function (headerType) {
+    if (!!headerType) {
+        this.headerType = headerType;
+        document.querySelector('html').dataset.headerType = headerType;
+    }
+    this.legacyType = document.querySelector('html').dataset.legacyType;
+    if (this.headerType !== 'static') {
+        if (!!this.legacyType) {
+            this.legacyType = this.legacyType === 'cbx' && !!document.querySelector('html').dataset.isSelfMigrated && document.body.classList.contains('citi-theme-light') ? 'citi' : this.legacyType;
+            if (!document.querySelector('html').dataset.isSelfMigrated) {
+                return this.loadHeaderLegacySite(true);
+            } else {
+                return this.loadHeaderLegacySite();
+            }
+        } else {
+            return this.loadHeaderNativeSite();
+        }
+    } else {
+        return CitiUtils.waitForElement('body > header');
+    }
+
+
+
+};
+
+CitiGlobalSite.prototype.loadFooter = function (footerType) {
+    if (!!footerType) {
+        this.footerType = footerType;
+        document.querySelector('html').dataset.footerType = footerType;
+    }
+    if (this.footerType !== 'static') {
+        if (!!this.legacyType) {
+            if (!document.querySelector('html').dataset.isSelfMigrated) {
+                return this.loadFooterLegacySite(true);
+            } else {
+                return this.loadFooterLegacySite();
+            }
+        } else {
+            return this.loadFooterNativeSite();
+        }
+    } else {
+        return CitiUtils.waitForElement('body > footer');
+    }
+};
+
+CitiGlobalSite.prototype.initialLoadHeaderFooter = function () {
+
+    var _this = this;
+    if (document.dispatchEvent(_this.onBeforeInitialHeaderFooterLoad)) {
+        return Promise.all([
+            _this.getHeaderFooterResources()
+        ]).catch(function (errors) {
+            console.debug('Error header footer', errors)
+        });
+    } else {
+        return Promise.resolve();
+    }
+};
+
+CitiGlobalSite.prototype.initSearch = function () {
+    function search(text, isAutoClick) {
+        sessionStorage.setItem('param_busqueda', text);
+        if (isAutoClick) {
+            sessionStorage.setItem('autoclick_busqueda', 'click');
+        }
+        window.location.href = '/resultados-de-busqueda.htm';
+    }
+    document.addEventListener('click', function (event) {
+        var target = event.srcElement;
+        if (target.parentNode.classList.contains('citi-navbar-search-results-item')) {
+            event.preventDefault();
+            var valor = target.textContent;
+            search(valor, true);
+        }
+    }, true);
+    document.addEventListener('keyup', function (event) {
+        var target = event.srcElement;
+        if (target.classList.contains('citi-navbar-search-input')) {
+            if (event.keyCode == 13) {
+                var text = target.value;
+                search(text);
+            }
+        }
+    });
+}
+
+CitiGlobalSite.prototype.initComponents = function () {
+    
+    if (document.querySelector('#exitmodal')) {
+        CitiUtils.getCitiHelpers().then(function () {
+            document.querySelector('#exitmodal').addEventListener('dialog-closed', function () {
+                var modals = [];
+                document.querySelectorAll('.citi-modal:not(#exitmodal)').forEach(function (modal) {
+                    var style = window.getComputedStyle(modal);
+                    if (style.display != 'none' && style.visibility != 'hidden') {
+                        modals.push(modal);
+                    }
+                });
+
+                if (modals.length != 0) {
+                    citi.ScreenLock.lock();
+                }
+
+            });
+
+        });
+    }
+
+    document.querySelectorAll('.citi-step-component').forEach(function (elm) {
+        if (!elm.stepComponent) {
+            CitiUtils.createCitiStepComponent(elm);
+        }
+    });
+
+    document.querySelectorAll('.citi-timer-component').forEach(function (elm) {
+        if (!elm.timerComponent) {
+            CitiUtils.createCitiTimerComponent(elm);
+        }
+    });
+    
+    document.querySelectorAll('.citi-zip-code-component').forEach(function (elm) {
+        if (!elm.zipCodeComponent) {
+            CitiUtils.createCitiZipCodeHelperComponent(elm);
+        }
+    });
+
+    CitiUtils.getCATs();
+
+};
+
+var CitiGlobalSite;
+
+if (!!window.MSInputMethodContext && !!document.documentMode) {
+
+    if (document.querySelector('html').dataset.legacyType === 'ng') {
+        CitiUtils.waitForElementCB('[ng-version]', 15000, function (elm) {
+            CitiUtils.getScriptCB(
+                '/assets/js/ie11-support.js', document.querySelector('head'),
+                function (success) {
+                    CitiGlobalSite = new CitiGlobalSite();
+                    CitiGlobalSite.getGlobalResources();
+                },
+                function (error) {
+                    console.debug('Load ie support error: ', error);
+                }
+            );
+        },
+            function () {
+                console.debug('Error');
+            });
+
+    } else {
+        CitiUtils.getScriptCB(
+            '/assets/js/ie11-support.js', document.querySelector('head'),
+            function (success) {
+                CitiGlobalSite = new CitiGlobalSite();
+                CitiGlobalSite.getGlobalResources();
+            },
+            function (error) {
+                console.debug('Load ie support error: ', error);
+            }
+        );
+    }
+
+} else {
+    CitiGlobalSite = new CitiGlobalSite();
+    CitiGlobalSite.getGlobalResources();
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () {
+        CitiGlobalSite.initComponents();
+    });
+} else {
+    CitiGlobalSite.initComponents();
+}
+
+
+
+
+
+ 
