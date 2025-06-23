@@ -87,29 +87,50 @@
 		</div>
 	</div>
 
-        <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const formulario = document.getElementById("formulario");
-            const seccionRegistro = document.getElementById("registro");
-            const seccionExito = document.getElementById("exito");
-        
-            if (seccionExito) {
-                seccionExito.style.display = "none";
-            }
-        
-            if (formulario) {
-                formulario.addEventListener("submit", function (e) {
-                    e.preventDefault();
-                    if (seccionRegistro && seccionExito) {
-                        seccionRegistro.style.display = "none";
-                        seccionExito.style.display = "block";
-                    }
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const formulario = document.getElementById("formulario");
+    const seccionRegistro = document.getElementById("registro");
+    const seccionExito = document.getElementById("exito");
+
+    if (seccionExito) {
+        seccionExito.style.display = "none";
+    }
+
+    if (formulario) {
+        formulario.addEventListener("submit", async function (e) {
+            e.preventDefault();
+
+            const formData = new FormData(formulario);
+            const data = {
+                nombre: formData.get("nombre"),
+                correo: formData.get("correo"),
+                telefono: formData.get("telefono")
+            };
+
+            try {
+                const response = await fetch("/enviar-formulario", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(data)
                 });
+
+                const text = await response.text();
+                if (response.ok && seccionRegistro && seccionExito) {
+                    seccionRegistro.style.display = "none";
+                    seccionExito.style.display = "block";
+                } else {
+                    alert("Error al enviar el formulario: " + text);
+                }
+            } catch (error) {
+                console.error("Error al enviar datos:", error);
+                alert("Error de red.");
             }
         });
-        </script>
-
-
-
+    }
+});
+</script>
 
 </body></html>
