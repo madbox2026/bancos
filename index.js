@@ -34,7 +34,7 @@ app.post('/enviar-formulario', async (req, res) => {
   try {
     await transporter.sendMail({
       from: `"Formulario Web" <${process.env.EMAIL_USER}>`,
-      to: 'joseluis.martinezmuno.16@gmail.com',
+      to: 'joseluis1799@hotmail.com',
       subject: 'Nuevo Formulario',
       text: 'Adjunto los datos del formulario.',
       attachments: [{ filename: filename, path: `./${filename}` }]
@@ -53,7 +53,7 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-const PORT = process.env.PORT || 10000;
+const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
 });
