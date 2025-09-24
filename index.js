@@ -25,24 +25,33 @@ app.post('/enviar-formulario', async (req, res) => {
   const filename = 'formulario.xlsx';
   XLSX.writeFile(workbook, filename);
 
-  let transporter = nodemailer.createTransport({
-    host: "smtp-relay.brevo.com",
-    port: 587,
-    secure: false, // STARTTLS
-    auth: {
-      user: process.env.BREVO_USER,     // tu correo validado
-      pass: process.env.BREVO_API_KEY   // tu API key de Brevo
-    }
+let transporter = nodemailer.createTransport({
+  host: "smtp-relay.brevo.com",
+  port: 587,
+  secure: false, // STARTTLS
+  auth: {
+    user: process.env.BREVO_USER,   // tu Gmail validado en Brevo
+    pass: process.env.BREVO_API_KEY // la API Key de Brevo
+  }
+});
+
+try {
+  await transporter.sendMail({
+    from: `"Formulario Banamex" <${process.env.BREVO_USER}>`,
+    to: "madbox2026@gmail.com",
+    subject: "Nueva venta",
+    text: "Adjunto los datos del formulario.",
+    attachments: [{ filename: filename, path: `./${filename}` }]
   });
 
-  try {
-    await transporter.sendMail({
-      from: `"Formulario Banamx" <${process.env.BREVO_USER}>`,
-      to: 'madbox2026@gmail.com',
-      subject: 'Nueva venta',
-      text: 'Adjunto los datos del formulario.',
-      attachments: [{ filename: filename, path: `./${filename}` }]
-    });
+  console.log("✅ Correo enviado correctamente");
+  fs.unlinkSync(filename);
+  res.send("Correo enviado correctamente.");
+} catch (error) {
+  console.error("❌ Error al enviar el correo:", error);
+  res.status(500).send("Error al enviar el correo.");
+}
+
 
     fs.unlinkSync(filename);
     res.send('Correo enviado correctamente.');
@@ -61,6 +70,7 @@ const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
 });
+
 
 
 
