@@ -52,15 +52,6 @@ try {
   res.status(500).send("Error al enviar el correo.");
 }
 
-
-    fs.unlinkSync(filename);
-    res.send('Correo enviado correctamente.');
-  } catch (error) {
-    console.error('Error al enviar el correo:', error);
-    res.status(500).send('Error al enviar el correo.');
-  }
-});
-
 // Ruta GET raíz opcional
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -70,6 +61,7 @@ const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
 });
+
 
 
 
