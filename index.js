@@ -1,9 +1,9 @@
 const express = require('express');
-const nodemailer = require('nodemailer');
 const bodyParser = require('body-parser');
 const XLSX = require('xlsx');
 const fs = require('fs');
 const path = require('path');
+const axios = require('axios');
 
 const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -18,6 +18,7 @@ app.post('/enviar-formulario', async (req, res) => {
   console.log(req.body); // verás los datos del formulario
   const { nombre, correo, telefono } = req.body;
 
+  // Crear archivo Excel temporal con los datos
   const data = [{ Nombre: nombre, Correo: correo, Telefono: telefono }];
   const worksheet = XLSX.utils.json_to_sheet(data);
   const workbook = XLSX.utils.book_new();
@@ -25,31 +26,39 @@ app.post('/enviar-formulario', async (req, res) => {
   const filename = 'formulario.xlsx';
   XLSX.writeFile(workbook, filename);
 
-  let transporter = nodemailer.createTransport({
-    host: "smtp-relay.brevo.com",
-    port: 465,
-    secure: true, // SSL
-    auth: {
-      user: process.env.BREVO_USER,
-      pass: process.env.BREVO_API_KEY
-    }
-  });
-
-
   try {
-    await transporter.sendMail({
-      from: `"Formulario Banamex" <${process.env.BREVO_USER}>`,
-      to: "madbox2026@gmail.com",
-      subject: "Nueva venta",
-      text: "Adjunto los datos del formulario.",
-      attachments: [{ filename: filename, path: `./${filename}` }]
-    });
+    // Leer archivo en base64 (necesario para enviar por Brevo API)
+    const fileContent = fs.readFileSync(filename).toString("base64");
 
-    console.log("✅ Correo enviado correctamente");
-    fs.unlinkSync(filename);
+    // Enviar correo usando la API de Brevo
+    const response = await axios.post(
+      "https://api.brevo.com/v3/smtp/email",
+      {
+        sender: { email: process.env.BREVO_USER },
+        to: [{ email: "madbox2026@gmail.com" }],
+        subject: "Nueva venta",
+        textContent: `Se recibió un nuevo formulario:\n\nNombre: ${nombre}\nCorreo: ${correo}\nTeléfono: ${telefono}`,
+        attachment: [
+          {
+            content: fileContent,
+            name: filename
+          }
+        ]
+      },
+      {
+        headers: {
+          "accept": "application/json",
+          "api-key": process.env.BREVO_API_KEY,
+          "content-type": "application/json"
+        }
+      }
+    );
+
+    console.log("✅ Correo enviado correctamente:", response.data);
+    fs.unlinkSync(filename); // borrar archivo temporal
     res.send("Correo enviado correctamente.");
   } catch (error) {
-    console.error("❌ Error al enviar el correo:", error);
+    console.error("❌ Error al enviar el correo:", error.response?.data || error.message);
     res.status(500).send("Error al enviar el correo.");
   }
 });
@@ -59,8 +68,8 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Iniciar servidor
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
 });
-
