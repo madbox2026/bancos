@@ -26,10 +26,11 @@ app.post('/enviar-formulario', async (req, res) => {
   XLSX.writeFile(workbook, filename);
 
   let transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: "smtp-relay.brevo.com",
+    port: 587,
     auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
+      user: process.env.BREVO_USER,
+      pass: process.env.BREVO_API_KEY
     }
   });
 
@@ -59,3 +60,4 @@ const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
 });
+
